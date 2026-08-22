@@ -1,27 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import type { Cow } from '../types/cow';
+import React, { useState, useEffect } from "react";
+import type { Cow } from "../types/cow";
+import { calculateReproductionFields } from "../utils/reproductionCalculations";
 
 interface CowFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cowData: Omit<Cow, 'id' | 'order'>) => void;
+  onSave: (cowData: Omit<Cow, "id" | "order">) => void;
   cowToEdit?: Cow | null;
 }
 
-export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowToEdit }) => {
+export const CowForm: React.FC<CowFormProps> = ({
+  isOpen,
+  onClose,
+  onSave,
+  cowToEdit,
+}) => {
   const initialFormState = {
-    numberTag: '',
-    name: '',
-    situation: 'L' as 'L' | 'S',
-    categoryGS: 'Multípara',
+    numberTag: "",
+    name: "",
+    situation: "L" as "L" | "S",
+    categoryGS: "Multípara",
     offspringCount: 1,
-    gender: 'F' as 'F' | 'M' | 'MF',
-    currentCalvingDate: new Date().toISOString().split('T')[0],
-    previousCalvingDate: '',
-    firstHeatDate: '',
-    firstInseminationDate: '',
-    lastHeatDate: '',
-    lastInseminationDate: '',
+    gender: "F" as "F" | "M" | "MF",
+    currentCalvingDate: new Date().toISOString().split("T")[0],
+    previousCalvingDate: "",
+    firstHeatDate: "",
+    firstInseminationDate: "",
+    lastHeatDate: "",
+    lastInseminationDate: "",
     inseminationNumber: 1,
     heatsCount: 1,
     del: 0,
@@ -29,11 +35,11 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
     dpia: 0,
     ip: 0,
     expectedIp: 0,
-    expectedCalvingDate: '',
-    bull: '',
-    diagnosisStatus: 'DG+' as 'DG+' | 'DG-',
-    dryingDate: '',
-    observations: ''
+    expectedCalvingDate: "",
+    bull: "",
+    diagnosisStatus: "DG+" as "DG+" | "DG-",
+    dryingDate: "",
+    observations: "",
   };
 
   const [formData, setFormData] = useState(initialFormState);
@@ -44,11 +50,11 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
         numberTag: cowToEdit.numberTag,
         name: cowToEdit.name,
         situation: cowToEdit.situation,
-        categoryGS: cowToEdit.categoryGS || 'Multípara',
+        categoryGS: cowToEdit.categoryGS || "Multípara",
         offspringCount: cowToEdit.offspringCount,
         gender: cowToEdit.gender,
         currentCalvingDate: cowToEdit.currentCalvingDate,
-        previousCalvingDate: cowToEdit.previousCalvingDate || '',
+        previousCalvingDate: cowToEdit.previousCalvingDate || "",
         firstHeatDate: cowToEdit.firstHeatDate,
         firstInseminationDate: cowToEdit.firstInseminationDate,
         lastHeatDate: cowToEdit.lastHeatDate,
@@ -64,7 +70,7 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
         bull: cowToEdit.bull,
         diagnosisStatus: cowToEdit.diagnosisStatus,
         dryingDate: cowToEdit.dryingDate,
-        observations: cowToEdit.observations
+        observations: cowToEdit.observations,
       });
     } else {
       setFormData(initialFormState);
@@ -75,46 +81,78 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+
+    // Aplica os cálculos automáticos antes de salvar
+    const calculated = calculateReproductionFields({
+      currentCalvingDate: formData.currentCalvingDate,
+      previousCalvingDate: formData.previousCalvingDate,
+      lastInseminationDate: formData.lastInseminationDate,
+      inseminationNumber: formData.inseminationNumber,
+    });
+
+    const finalData = {
+      ...formData,
+      ...calculated,
+    };
+
+    onSave(finalData);
     onClose();
   };
-
+  
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
         <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
-          {cowToEdit ? 'Editar Dados da Vaca' : 'Cadastrar Nova Vaca'}
+          {cowToEdit ? "Editar Dados da Vaca" : "Cadastrar Nova Vaca"}
         </h2>
-        
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm"
+        >
           <div>
-            <label className="block font-medium text-gray-700">Número (Brinco)</label>
+            <label className="block font-medium text-gray-700">
+              Número (Brinco)
+            </label>
             <input
               type="text"
               className="mt-1 w-full border rounded p-2"
               value={formData.numberTag}
-              onChange={e => setFormData({ ...formData, numberTag: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, numberTag: e.target.value })
+              }
               required
             />
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Nome da Vaca</label>
+            <label className="block font-medium text-gray-700">
+              Nome da Vaca
+            </label>
             <input
               type="text"
               className="mt-1 w-full border rounded p-2"
               value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               required
             />
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Situação (L/S)</label>
+            <label className="block font-medium text-gray-700">
+              Situação (L/S)
+            </label>
             <select
               className="mt-1 w-full border rounded p-2"
               value={formData.situation}
-              onChange={e => setFormData({ ...formData, situation: e.target.value as 'L' | 'S' })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  situation: e.target.value as "L" | "S",
+                })
+              }
             >
               <option value="L">L - Lactação</option>
               <option value="S">S - Seca/Descarte</option>
@@ -122,11 +160,15 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Categoria (G.S.)</label>
+            <label className="block font-medium text-gray-700">
+              Categoria (G.S.)
+            </label>
             <select
               className="mt-1 w-full border rounded p-2"
               value={formData.categoryGS}
-              onChange={e => setFormData({ ...formData, categoryGS: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, categoryGS: e.target.value })
+              }
             >
               <option value="Nulípara">Nulípara</option>
               <option value="Primípara">Primípara</option>
@@ -135,21 +177,35 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Nº de Crias</label>
+            <label className="block font-medium text-gray-700">
+              Nº de Crias
+            </label>
             <input
               type="number"
               className="mt-1 w-full border rounded p-2"
               value={formData.offspringCount}
-              onChange={e => setFormData({ ...formData, offspringCount: Number(e.target.value) })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  offspringCount: Number(e.target.value),
+                })
+              }
             />
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Sexo da Cria</label>
+            <label className="block font-medium text-gray-700">
+              Sexo da Cria
+            </label>
             <select
               className="mt-1 w-full border rounded p-2"
               value={formData.gender}
-              onChange={e => setFormData({ ...formData, gender: e.target.value as 'F' | 'M' | 'MF' })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  gender: e.target.value as "F" | "M" | "MF",
+                })
+              }
             >
               <option value="F">Feminino (F)</option>
               <option value="M">Masculino (M)</option>
@@ -158,22 +214,67 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Data Parto Atual</label>
+            <label className="block font-medium text-gray-700">
+              Data Parto Atual
+            </label>
             <input
               type="date"
               className="mt-1 w-full border rounded p-2"
               value={formData.currentCalvingDate}
-              onChange={e => setFormData({ ...formData, currentCalvingDate: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, currentCalvingDate: e.target.value })
+              }
             />
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Data Parto Anterior (Opcional)</label>
+            <label className="block font-medium text-gray-700">
+              Data Parto Anterior (Opcional)
+            </label>
             <input
               type="date"
               className="mt-1 w-full border rounded p-2"
               value={formData.previousCalvingDate}
-              onChange={e => setFormData({ ...formData, previousCalvingDate: e.target.value })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  previousCalvingDate: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Primeira Inseminação (1ª IA - Opcional)
+            </label>
+            <input
+              type="date"
+              className="mt-1 w-full border rounded p-2"
+              value={formData.firstInseminationDate}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  firstInseminationDate: e.target.value,
+                })
+              }
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700">
+              Número de IAs / Cios
+            </label>
+            <input
+              type="number"
+              className="mt-1 w-full border rounded p-2"
+              value={formData.inseminationNumber}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  inseminationNumber: Number(e.target.value),
+                })
+              }
             />
           </div>
 
@@ -183,17 +284,26 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
               type="text"
               className="mt-1 w-full border rounded p-2"
               value={formData.bull}
-              onChange={e => setFormData({ ...formData, bull: e.target.value.toUpperCase() })}
+              onChange={(e) =>
+                setFormData({ ...formData, bull: e.target.value.toUpperCase() })
+              }
               placeholder="Ex: JACK DANIELS"
             />
           </div>
 
           <div>
-            <label className="block font-medium text-gray-700">Diagnóstico (DG)</label>
+            <label className="block font-medium text-gray-700">
+              Diagnóstico (DG)
+            </label>
             <select
               className="mt-1 w-full border rounded p-2"
               value={formData.diagnosisStatus}
-              onChange={e => setFormData({ ...formData, diagnosisStatus: e.target.value as 'DG+' | 'DG-' })}
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  diagnosisStatus: e.target.value as "DG+" | "DG-",
+                })
+              }
             >
               <option value="DG+">DG+</option>
               <option value="DG-">DG-</option>
@@ -201,12 +311,16 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
           </div>
 
           <div className="md:col-span-2">
-            <label className="block font-medium text-gray-700">Observações</label>
+            <label className="block font-medium text-gray-700">
+              Observações
+            </label>
             <input
               type="text"
               className="mt-1 w-full border rounded p-2"
               value={formData.observations}
-              onChange={e => setFormData({ ...formData, observations: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, observations: e.target.value })
+              }
             />
           </div>
 
@@ -222,7 +336,7 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
               type="submit"
               className="px-4 py-2 bg-emerald-700 text-white rounded hover:bg-emerald-800 font-medium"
             >
-              {cowToEdit ? 'Salvar Alterações' : 'Salvar Vaca'}
+              {cowToEdit ? "Salvar Alterações" : "Salvar Vaca"}
             </button>
           </div>
         </form>

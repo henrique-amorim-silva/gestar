@@ -4,18 +4,35 @@ import { CowTable } from './components/CowTable';
 import { CowForm } from './components/CowForm';
 import { InseminationModal } from './components/InseminationModal';
 import type { Cow } from './types/cow';
+import { calculateReproductionFields } from './utils/reproductionCalculations';
 
 export function App() {
   const [cows, setCows] = useState<Cow[]>(() => {
     const saved = localStorage.getItem('@gestar_cows');
+    let cowsData = INITIAL_COWS;
+    
     if (saved) {
       try {
-        return JSON.parse(saved);
+        cowsData = JSON.parse(saved);
       } catch (e) {
         console.error("Erro ao carregar localStorage", e);
       }
     }
-    return INITIAL_COWS;
+
+    // Garante que todas as vacas carregadas tenham os campos recalculados com a data atual
+    return cowsData.map(cow => {
+      const calculated = calculateReproductionFields({
+        currentCalvingDate: cow.currentCalvingDate,
+        previousCalvingDate: cow.previousCalvingDate,
+        lastInseminationDate: cow.lastInseminationDate,
+        inseminationNumber: cow.inseminationNumber
+      });
+      return {
+        ...cow,
+        ...calculated,
+        heatsCount: cow.inseminationNumber
+      };
+    });
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,16 +67,26 @@ export function App() {
         const previousState = {
           lastInseminationDate: cow.lastInseminationDate,
           bull: cow.bull,
-          inseminationNumber: cow.inseminationNumber
+          inseminationNumber: cow.inseminationNumber,
+          firstInseminationDate: cow.firstInseminationDate
         };
 
         const history = cow.inseminationHistory || [];
+        const newInsemNumber = insemData.incrementInseminationNumber ? cow.inseminationNumber + 1 : cow.inseminationNumber;
+        
+        const calculated = calculateReproductionFields({
+          currentCalvingDate: cow.currentCalvingDate,
+          previousCalvingDate: cow.previousCalvingDate,
+          lastInseminationDate: insemData.lastInseminationDate,
+          inseminationNumber: newInsemNumber
+        });
 
         return {
           ...cow,
           lastInseminationDate: insemData.lastInseminationDate,
           bull: insemData.bull,
-          inseminationNumber: insemData.incrementInseminationNumber ? cow.inseminationNumber + 1 : cow.inseminationNumber,
+          inseminationNumber: newInsemNumber,
+          ...calculated,
           inseminationHistory: [previousState, ...history]
         };
       }
@@ -79,11 +106,19 @@ export function App() {
         const lastState = history[0];
         const remainingHistory = history.slice(1);
 
+        const calculated = calculateReproductionFields({
+          currentCalvingDate: cow.currentCalvingDate,
+          previousCalvingDate: cow.previousCalvingDate,
+          lastInseminationDate: lastState.lastInseminationDate,
+          inseminationNumber: lastState.inseminationNumber
+        });
+
         return {
           ...cow,
           lastInseminationDate: lastState.lastInseminationDate,
           bull: lastState.bull,
           inseminationNumber: lastState.inseminationNumber,
+          ...calculated,
           inseminationHistory: remainingHistory
         };
       }

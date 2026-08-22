@@ -2,6 +2,7 @@ export interface InseminationRecord {
   lastInseminationDate: string;
   bull: string;
   inseminationNumber: number;
+  firstInseminationDate?: string;
 }
 
 export interface Cow {
