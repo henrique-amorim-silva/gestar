@@ -13,7 +13,7 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
     numberTag: '',
     name: '',
     situation: 'L' as 'L' | 'S',
-    categoryGS: '',
+    categoryGS: 'Multípara',
     offspringCount: 1,
     gender: 'F' as 'F' | 'M' | 'MF',
     currentCalvingDate: new Date().toISOString().split('T')[0],
@@ -44,11 +44,11 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
         numberTag: cowToEdit.numberTag,
         name: cowToEdit.name,
         situation: cowToEdit.situation,
-        categoryGS: cowToEdit.categoryGS,
+        categoryGS: cowToEdit.categoryGS || 'Multípara',
         offspringCount: cowToEdit.offspringCount,
         gender: cowToEdit.gender,
         currentCalvingDate: cowToEdit.currentCalvingDate,
-        previousCalvingDate: cowToEdit.previousCalvingDate,
+        previousCalvingDate: cowToEdit.previousCalvingDate || '',
         firstHeatDate: cowToEdit.firstHeatDate,
         firstInseminationDate: cowToEdit.firstInseminationDate,
         lastHeatDate: cowToEdit.lastHeatDate,
@@ -122,6 +122,19 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
           </div>
 
           <div>
+            <label className="block font-medium text-gray-700">Categoria (G.S.)</label>
+            <select
+              className="mt-1 w-full border rounded p-2"
+              value={formData.categoryGS}
+              onChange={e => setFormData({ ...formData, categoryGS: e.target.value })}
+            >
+              <option value="Nulípara">Nulípara</option>
+              <option value="Primípara">Primípara</option>
+              <option value="Multípara">Multípara</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block font-medium text-gray-700">Nº de Crias</label>
             <input
               type="number"
@@ -151,6 +164,16 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
               className="mt-1 w-full border rounded p-2"
               value={formData.currentCalvingDate}
               onChange={e => setFormData({ ...formData, currentCalvingDate: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <label className="block font-medium text-gray-700">Data Parto Anterior (Opcional)</label>
+            <input
+              type="date"
+              className="mt-1 w-full border rounded p-2"
+              value={formData.previousCalvingDate}
+              onChange={e => setFormData({ ...formData, previousCalvingDate: e.target.value })}
             />
           </div>
 
