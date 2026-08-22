@@ -1,9 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { INITIAL_COWS } from './data/initialCows';
 import { CowTable } from './components/CowTable';
+import { CowForm } from './components/CowForm';
+import type { Cow } from './types/cow';
 
 export function App() {
-  const [cows] = useState(INITIAL_COWS);
+  const [cows, setCows] = useState<Cow[]>(() => {
+    const saved = localStorage.getItem('@gestar_cows');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Erro ao carregar localStorage", e);
+      }
+    }
+    return INITIAL_COWS;
+  });
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('@gestar_cows', JSON.stringify(cows));
+  }, [cows]);
+
+  const handleAddCow = (newCowData: Omit<Cow, 'id'>) => {
+    const newCow: Cow = {
+      ...newCowData,
+      id: Date.now(), // ID único baseado no timestamp
+    };
+    setCows([newCow, ...cows]);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
@@ -19,8 +45,16 @@ export function App() {
               Sistema de gestão de inseminação artificial e reprodução do rebanho.
             </p>
           </div>
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2 rounded-lg text-sm font-semibold">
-            Total de Matrizes: {cows.length}
+          <div className="flex items-center gap-4">
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-2 rounded-lg text-sm font-semibold">
+              Total de Matrizes: {cows.length}
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded-lg shadow transition-colors text-sm"
+            >
+              + Nova Vaca
+            </button>
           </div>
         </header>
 
@@ -28,6 +62,13 @@ export function App() {
         <main>
           <CowTable cows={cows} />
         </main>
+
+        {/* Modal de Cadastro */}
+        <CowForm
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSave={handleAddCow}
+        />
       </div>
     </div>
   );
