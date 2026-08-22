@@ -7,9 +7,10 @@ interface CowFormProps {
   onClose: () => void;
   onSave: (data: any) => void;
   cowToEdit: Cow | null;
+  cows: Cow[]; // Adicionado na interface
 }
 
-export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
+export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormProps) {
   const [formData, setFormData] = useState({
     numberTag: '',
     name: '',
@@ -22,12 +23,15 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
     firstHeatDate: '',
     firstInseminationDate: '',
     lastInseminationDate: '',
+    lastHeatDate: '',
     inseminationNumber: 0,
     bull: '',
     diagnosisStatus: 'DG+' as 'DG+' | 'DG-',
     dryingDate: '',
     observations: ''
   });
+
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (cowToEdit) {
@@ -43,6 +47,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
         firstHeatDate: cowToEdit.firstHeatDate || '',
         firstInseminationDate: cowToEdit.firstInseminationDate || '',
         lastInseminationDate: cowToEdit.lastInseminationDate || '',
+        lastHeatDate: cowToEdit.lastHeatDate || '',
         inseminationNumber: cowToEdit.inseminationNumber || 0,
         bull: cowToEdit.bull || '',
         diagnosisStatus: cowToEdit.diagnosisStatus || 'DG+',
@@ -62,6 +67,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
         firstHeatDate: '',
         firstInseminationDate: '',
         lastInseminationDate: '',
+        lastHeatDate: '',
         inseminationNumber: 0,
         bull: '',
         diagnosisStatus: 'DG+',
@@ -69,9 +75,9 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
         observations: ''
       });
     }
+    setError('');
   }, [cowToEdit, isOpen]);
 
-  // Função auxiliar para sugerir a categoria automaticamente com base no Nº de IAs/Cios
   const handleInseminationChange = (value: number) => {
     let autoCategory = formData.categoryGS;
     if (value === 0) autoCategory = 'Nulípara';
@@ -87,6 +93,22 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    const trimmedTag = formData.numberTag.trim();
+
+    // Validação de número de brinco duplicado mantendo o modal aberto
+    if (trimmedTag) {
+      const duplicateCow = cows.find(
+        c => c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() && 
+             (!cowToEdit || c.id !== cowToEdit.id)
+      );
+
+      if (duplicateCow) {
+        setError(`Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`);
+        return;
+      }
+    }
 
     const calculated = calculateReproductionFields({
       currentCalvingDate: formData.currentCalvingDate,
@@ -97,7 +119,10 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
       inseminationNumber: formData.inseminationNumber
     });
 
-    onSave({ ...formData, ...calculated });
+    onSave({ 
+      ...formData, 
+      ...calculated 
+    });
     onClose();
   };
 
@@ -108,6 +133,12 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
       <form onSubmit={handleSubmit} className="bg-white rounded-lg p-6 w-full max-w-2xl space-y-4 shadow-xl my-8">
         <h2 className="text-xl font-bold text-gray-800">{cowToEdit ? 'Editar Vaca' : 'Nova Vaca'}</h2>
         
+        {error && (
+          <div className="p-3 bg-red-100 text-red-700 text-sm rounded border border-red-300 font-medium">
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Nº Brinco / Num.</label>
@@ -168,20 +199,24 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-3 rounded border">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">1ª IA (Legado)</label>
-            <input type="date" className="w-full p-2 border rounded bg-white" value={formData.firstInseminationDate} onChange={e => setFormData({...formData, firstInseminationDate: e.target.value})} />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">1º Cio / 1ª IA</label>
+            <input 
+              type="date" className="w-full p-2 border rounded bg-white" 
+              value={formData.firstInseminationDate} 
+              onChange={e => setFormData({...formData, firstInseminationDate: e.target.value, firstHeatDate: e.target.value})} 
+            />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">1º Cio (Legado)</label>
-            <input type="date" className="w-full p-2 border rounded bg-white" value={formData.firstHeatDate} onChange={e => setFormData({...formData, firstHeatDate: e.target.value})} />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Últ. Cio / Últ. IA</label>
+            <input 
+              type="date" className="w-full p-2 border rounded bg-white" 
+              value={formData.lastInseminationDate} 
+              onChange={e => setFormData({...formData, lastInseminationDate: e.target.value, lastHeatDate: e.target.value})} 
+            />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Última IA</label>
-            <input type="date" className="w-full p-2 border rounded" value={formData.lastInseminationDate} onChange={e => setFormData({...formData, lastInseminationDate: e.target.value})} />
-          </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs / Cios</label>
             <input type="number" className="w-full p-2 border rounded" value={formData.inseminationNumber} onChange={e => handleInseminationChange(Number(e.target.value))} />
@@ -190,9 +225,6 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
             <label className="block text-xs font-semibold text-gray-600 mb-1">Touro</label>
             <input type="text" className="w-full p-2 border rounded" value={formData.bull} onChange={e => setFormData({...formData, bull: e.target.value})} placeholder="Ex: JACK DANIELS" />
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Status DG</label>
             <select className="w-full p-2 border rounded" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value as 'DG+' | 'DG-'})}>
@@ -200,6 +232,9 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
               <option value="DG-">DG-</option>
             </select>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Data Secar</label>
             <input type="date" className="w-full p-2 border rounded" value={formData.dryingDate} onChange={e => setFormData({...formData, dryingDate: e.target.value})} />

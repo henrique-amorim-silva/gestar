@@ -43,6 +43,20 @@ export function App() {
   }, [cows]);
 
   const handleSaveCow = (cowData: any) => {
+    const trimmedTag = (cowData.numberTag || "").trim();
+
+    // Validação: Verifica se já existe outra vaca com o mesmo número de brinco
+    if (trimmedTag) {
+      const duplicateCow = cows.find(
+        (c) => c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() && (!cowToEdit || c.id !== cowToEdit.id)
+      );
+
+      if (duplicateCow) {
+        alert(`Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`);
+        return; // Interrompe o salvamento
+      }
+    }
+
     if (cowToEdit) {
       const updatedCow: Cow = {
         ...cowToEdit,
@@ -282,6 +296,7 @@ export function App() {
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveCow}
           cowToEdit={cowToEdit}
+          cows={cows}
         />
         <InseminationModal
           isOpen={isInsemModalOpen}

@@ -6,7 +6,7 @@ interface CowTableProps {
   onEdit: (cow: Cow) => void;
   onDelete: (id: number) => void;
   onInsemination: (cow: Cow) => void;
-  onCalving: (cow: Cow) => void; // <--- Adicionado
+  onCalving: (cow: Cow) => void;
   onUndoInsemination: (cowId: number) => void;
 }
 
@@ -26,10 +26,8 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
             <th className="px-3 py-3">Sexo</th>
             <th className="px-3 py-3">Parto Atual</th>
             <th className="px-3 py-3">Parto Ant.</th>
-            <th className="px-3 py-3">1º Cio</th>
-            <th className="px-3 py-3">1ª IA</th>
-            <th className="px-3 py-3">Últ. Cio</th>
-            <th className="px-3 py-3">Últ. IA</th>
+            <th className="px-3 py-3">1º Cio/IA</th>
+            <th className="px-3 py-3">Últ. Cio/IA</th>
             <th className="px-3 py-3">Nº IA</th>
             <th className="px-3 py-3">Cios</th>
             <th className="px-3 py-3">DEL</th>
@@ -112,10 +110,8 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
                 <td className="px-3 py-2 text-center">{cow.gender}</td>
                 <td className="px-3 py-2">{cow.currentCalvingDate}</td>
                 <td className="px-3 py-2">{cow.previousCalvingDate}</td>
-                <td className="px-3 py-2">{cow.firstHeatDate}</td>
-                <td className="px-3 py-2">{cow.firstInseminationDate}</td>
-                <td className="px-3 py-2">{cow.lastHeatDate}</td>
-                <td className="px-3 py-2">{cow.lastInseminationDate}</td>
+                <td className="px-3 py-2">{cow.firstInseminationDate || cow.firstHeatDate}</td>
+                <td className="px-3 py-2">{cow.lastInseminationDate || cow.lastHeatDate}</td>
                 <td className="px-3 py-2 text-center font-semibold">{cow.inseminationNumber}</td>
                 <td className="px-3 py-2 text-center">{cow.heatsCount}</td>
                 <td className="px-3 py-2 text-center font-bold text-emerald-700">{cow.del}</td>
