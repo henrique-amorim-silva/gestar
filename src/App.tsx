@@ -10,6 +10,7 @@ import { DashboardKPIs } from "./components/DashboardKPIs"; // <--- Importação
 import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 import { DashboardAlerts } from "./components/DashboardAlerts";
+import { ReproductionGauges } from "./components/ReproductionGauges";
 
 export function App() {
   const [cows, setCows] = useState<Cow[]>(() => {
@@ -40,12 +41,17 @@ export function App() {
   const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null);
   const [isCalvingModalOpen, setIsCalvingModalOpen] = useState(false);
   const [cowToCalve, setCowToCalve] = useState<Cow | null>(null);
-  
-  const [isCalvingHistoryModalOpen, setIsCalvingHistoryModalOpen] = useState(false);
-  const [cowForCalvingHistory, setCowForCalvingHistory] = useState<Cow | null>(null);
 
-  const [isInseminationHistoryModalOpen, setIsInseminationHistoryModalOpen] = useState(false);
-  const [cowForInseminationHistory, setCowForInseminationHistory] = useState<Cow | null>(null);
+  const [isCalvingHistoryModalOpen, setIsCalvingHistoryModalOpen] =
+    useState(false);
+  const [cowForCalvingHistory, setCowForCalvingHistory] = useState<Cow | null>(
+    null,
+  );
+
+  const [isInseminationHistoryModalOpen, setIsInseminationHistoryModalOpen] =
+    useState(false);
+  const [cowForInseminationHistory, setCowForInseminationHistory] =
+    useState<Cow | null>(null);
 
   useEffect(() => {
     localStorage.setItem("@gestar_cows", JSON.stringify(cows));
@@ -56,11 +62,15 @@ export function App() {
 
     if (trimmedTag) {
       const duplicateCow = cows.find(
-        (c) => c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() && (!cowToEdit || c.id !== cowToEdit.id)
+        (c) =>
+          c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() &&
+          (!cowToEdit || c.id !== cowToEdit.id),
       );
 
       if (duplicateCow) {
-        alert(`Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`);
+        alert(
+          `Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`,
+        );
         return;
       }
     }
@@ -117,7 +127,8 @@ export function App() {
             previousCalvingDate: cow.previousCalvingDate,
           };
 
-          const updatedPreviousCalving = cow.currentCalvingDate || cow.previousCalvingDate;
+          const updatedPreviousCalving =
+            cow.currentCalvingDate || cow.previousCalvingDate;
           const updatedCurrentCalving = newCalvingDate;
 
           const calculated = calculateReproductionFields({
@@ -134,19 +145,21 @@ export function App() {
             ...calculated,
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            calvingHistory: [
-              previousState,
-              ...(cow.calvingHistory || []),
-            ],
+            calvingHistory: [previousState, ...(cow.calvingHistory || [])],
           };
         }
         return cow;
-      })
+      }),
     );
   };
 
- const handleUpdateCalvingHistory = (cowId: number, updatedDates: string[]) => {
-    const sortedDates = [...updatedDates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  const handleUpdateCalvingHistory = (
+    cowId: number,
+    updatedDates: string[],
+  ) => {
+    const sortedDates = [...updatedDates].sort(
+      (a, b) => new Date(b).getTime() - new Date(a).getTime(),
+    );
 
     const newCurrentCalving = sortedDates[0] || "";
     const newPreviousCalving = sortedDates[1] || "";
@@ -180,7 +193,7 @@ export function App() {
           };
         }
         return cow;
-      })
+      }),
     );
   };
 
@@ -212,8 +225,10 @@ export function App() {
           else if (newInsemNumber === 1) newCategoryGS = "Primípara";
           else if (newInsemNumber > 1) newCategoryGS = "Multípara";
 
-          const firstInseminationDate = cow.firstInseminationDate || insemData.lastInseminationDate;
-          const firstHeatDate = cow.firstHeatDate || insemData.lastInseminationDate;
+          const firstInseminationDate =
+            cow.firstInseminationDate || insemData.lastInseminationDate;
+          const firstHeatDate =
+            cow.firstHeatDate || insemData.lastInseminationDate;
 
           const calculated = calculateReproductionFields({
             currentCalvingDate: cow.currentCalvingDate,
@@ -244,8 +259,13 @@ export function App() {
     );
   };
 
-  const handleUpdateInseminationHistory = (cowId: number, updatedHistory: any[]) => {
-    const sorted = [...updatedHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const handleUpdateInseminationHistory = (
+    cowId: number,
+    updatedHistory: any[],
+  ) => {
+    const sorted = [...updatedHistory].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
     const latestInsemination = sorted[0];
 
     const newInsemNumber = sorted.length;
@@ -256,7 +276,9 @@ export function App() {
           const calculated = calculateReproductionFields({
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
-            lastInseminationDate: latestInsemination ? latestInsemination.date : '',
+            lastInseminationDate: latestInsemination
+              ? latestInsemination.date
+              : "",
             firstInseminationDate: cow.firstInseminationDate,
             firstHeatDate: cow.firstHeatDate,
             inseminationNumber: newInsemNumber,
@@ -265,14 +287,16 @@ export function App() {
           return {
             ...cow,
             ...calculated,
-            lastInseminationDate: latestInsemination ? latestInsemination.date : '',
-            bull: latestInsemination ? latestInsemination.bull : '',
+            lastInseminationDate: latestInsemination
+              ? latestInsemination.date
+              : "",
+            bull: latestInsemination ? latestInsemination.bull : "",
             inseminationNumber: newInsemNumber,
             inseminationHistory: sorted,
           };
         }
         return cow;
-      })
+      }),
     );
   };
 
@@ -325,6 +349,9 @@ export function App() {
         <main className="w-full space-y-6">
           {/* Bloco de KPIs / Indicadores Reprodutivos */}
           <DashboardKPIs cows={cows} />
+
+          {/* Gráficos de Medidores */}
+          <ReproductionGauges cows={cows} />
 
           {/* Bloco de Alertas e Ações Imediatas */}
           <DashboardAlerts cows={cows} />
