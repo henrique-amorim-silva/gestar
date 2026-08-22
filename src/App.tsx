@@ -12,7 +12,7 @@ export function App() {
     const saved = localStorage.getItem("@gestar_cows");
     if (saved) {
       const parsedCows: Cow[] = JSON.parse(saved);
-      // Recalcula dinamicamente os campos com base na data de hoje ao carregar do localStorage
+      // Recalcula dinamicamente os campos com base na data de hoje ao carregar do localStorage[cite: 6]
       return parsedCows.map((cow) => {
         const calculated = calculateReproductionFields({
           currentCalvingDate: cow.currentCalvingDate,
@@ -28,24 +28,24 @@ export function App() {
         };
       });
     }
-    return INITIAL_COWS;
+    return INITIAL_COWS; //[cite: 6]
   });
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [cowToEdit, setCowToEdit] = useState<Cow | null>(null);
-  const [isInsemModalOpen, setIsInsemModalOpen] = useState(false);
-  const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null);
-  const [isCalvingModalOpen, setIsCalvingModalOpen] = useState(false);
-  const [cowToCalve, setCowToCalve] = useState<Cow | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false); //[cite: 6]
+  const [cowToEdit, setCowToEdit] = useState<Cow | null>(null); //[cite: 6]
+  const [isInsemModalOpen, setIsInsemModalOpen] = useState(false); //[cite: 6]
+  const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null); //[cite: 6]
+  const [isCalvingModalOpen, setIsCalvingModalOpen] = useState(false); //[cite: 6]
+  const [cowToCalve, setCowToCalve] = useState<Cow | null>(null); //[cite: 6]
 
   useEffect(() => {
-    localStorage.setItem("@gestar_cows", JSON.stringify(cows));
+    localStorage.setItem("@gestar_cows", JSON.stringify(cows)); //[cite: 6]
   }, [cows]);
 
   const handleSaveCow = (cowData: any) => {
     const trimmedTag = (cowData.numberTag || "").trim();
 
-    // Validação: Verifica se já existe outra vaca com o mesmo número de brinco
+    // Validação: Verifica se já existe outra vaca com o mesmo número de brinco[cite: 6]
     if (trimmedTag) {
       const duplicateCow = cows.find(
         (c) => c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() && (!cowToEdit || c.id !== cowToEdit.id)
@@ -53,7 +53,7 @@ export function App() {
 
       if (duplicateCow) {
         alert(`Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`);
-        return; // Interrompe o salvamento
+        return; // Interrompe o salvamento[cite: 6]
       }
     }
 
@@ -77,7 +77,7 @@ export function App() {
       setCowToEdit(null);
     } else {
       const nextOrder =
-        cows.length > 0 ? Math.max(...cows.map((c) => c.order)) + 1 : 1;
+        cows.length > 0 ? Math.max(...cows.map((c) => c.order)) + 1 : 1; //[cite: 6]
       const newCow: Cow = {
         ...cowData,
         id: Date.now(),
@@ -96,7 +96,7 @@ export function App() {
         inseminationHistory: [],
         calvingHistory: [],
       };
-      setCows([...cows, newCow]);
+      setCows([...cows, newCow]); //[cite: 6]
     }
   };
 
@@ -264,9 +264,10 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        <header className="bg-white shadow rounded-lg p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-emerald-600">
+    // Alterado de max-w-7xl mx-auto para w-full, ocupando 100% da tela do computador
+    <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
+      <div className="w-full space-y-6">
+        <header className="bg-white shadow rounded-lg p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-emerald-600 w-full">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
               Controle Reprodutivo
@@ -274,13 +275,13 @@ export function App() {
           </div>
           <button
             onClick={handleOpenCreateModal}
-            className="bg-emerald-700 text-white px-4 py-2 rounded-lg"
+            className="bg-emerald-700 text-white px-4 py-2 rounded-lg hover:bg-emerald-800 transition-colors"
           >
             + Nova Vaca
           </button>
         </header>
 
-        <main>
+        <main className="w-full">
           <CowTable
             cows={cows}
             onEdit={handleEditCow}
