@@ -16,10 +16,10 @@ export interface Cow {
   order: number;
   numberTag: string;
   name: string;
-  situation: 'L' | 'S';
+  situation: string;
   categoryGS: string;
   offspringCount: number;
-  gender: 'F' | 'M' | 'MF';
+  gender: string;
   currentCalvingDate: string;
   previousCalvingDate: string;
   firstHeatDate: string;
@@ -35,7 +35,7 @@ export interface Cow {
   expectedIp: number;
   expectedCalvingDate: string;
   bull: string;
-  diagnosisStatus: 'DG+' | 'DG-';
+  diagnosisStatus: string;
   dryingDate: string;
   observations: string;
   inseminationHistory?: InseminationRecord[];
