@@ -332,18 +332,11 @@ export function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
-        <header className="bg-white shadow rounded-lg p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-emerald-600 w-full">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
-              Controle Reprodutivo
-            </h1>
-          </div>
-          <button
-            onClick={handleOpenCreateModal}
-            className="bg-emerald-700 text-white px-4 py-2 rounded-lg hover:bg-emerald-800 transition-colors"
-          >
-            + Nova Vaca
-          </button>
+        {/* Cabeçalho limpo focado apenas no título do sistema */}
+        <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full">
+          <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
+            Controle Reprodutivo
+          </h1>
         </header>
 
         <main className="w-full space-y-6">
@@ -356,16 +349,32 @@ export function App() {
           {/* Bloco de Alertas e Ações Imediatas */}
           <DashboardAlerts cows={cows} />
 
-          {/* Tabela Principal */}
-          <CowTable
-            cows={cows}
-            onEdit={handleEditCow}
-            onDelete={handleDeleteCow}
-            onInsemination={handleOpenInseminationModal}
-            onCalving={handleOpenCalvingModal}
-            onOpenCalvingHistory={handleOpenCalvingHistoryModal}
-            onOpenInseminationHistory={handleOpenInseminationHistoryModal}
-          />
+          {/* Seção da Tabela com o Botão de Nova Vaca Integrado Logo Acima */}
+          <div className="bg-white rounded-lg shadow p-5 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">Gerenciamento do Rebanho</h2>
+                <p className="text-xs text-gray-500">Lista completa de animais e histórico reprodutivo</p>
+              </div>
+              <button
+                onClick={handleOpenCreateModal}
+                className="bg-emerald-700 text-white px-4 py-2 rounded-lg hover:bg-emerald-800 font-semibold text-sm transition-colors shadow flex items-center gap-2"
+              >
+                <span>+ Nova Vaca</span>
+              </button>
+            </div>
+
+            {/* Tabela Principal */}
+            <CowTable
+              cows={cows}
+              onEdit={handleEditCow}
+              onDelete={handleDeleteCow}
+              onInsemination={handleOpenInseminationModal}
+              onCalving={handleOpenCalvingModal}
+              onOpenCalvingHistory={handleOpenCalvingHistoryModal}
+              onOpenInseminationHistory={handleOpenInseminationHistoryModal}
+            />
+          </div>
         </main>
 
         <CowForm
