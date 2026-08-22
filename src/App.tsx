@@ -9,6 +9,7 @@ import { InseminationHistoryModal } from "./components/InseminationHistoryModal"
 import { DashboardKPIs } from "./components/DashboardKPIs"; // <--- Importação dos KPIs
 import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
+import { DashboardAlerts } from "./components/DashboardAlerts";
 
 export function App() {
   const [cows, setCows] = useState<Cow[]>(() => {
@@ -324,6 +325,9 @@ export function App() {
         <main className="w-full space-y-6">
           {/* Bloco de KPIs / Indicadores Reprodutivos */}
           <DashboardKPIs cows={cows} />
+
+          {/* Bloco de Alertas e Ações Imediatas */}
+          <DashboardAlerts cows={cows} />
 
           {/* Tabela Principal */}
           <CowTable
