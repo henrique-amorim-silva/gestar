@@ -7,17 +7,17 @@ interface CowFormProps {
   onClose: () => void;
   onSave: (data: any) => void;
   cowToEdit: Cow | null;
-  cows: Cow[]; // Adicionado na interface
+  cows: Cow[];
 }
 
 export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormProps) {
   const [formData, setFormData] = useState({
     numberTag: '',
     name: '',
-    situation: 'L' as 'L' | 'S',
+    situation: 'L' as string,
     categoryGS: '',
     offspringCount: 0,
-    gender: 'F' as 'F' | 'M' | 'MF',
+    gender: 'F' as string,
     currentCalvingDate: '',
     previousCalvingDate: '',
     firstHeatDate: '',
@@ -26,9 +26,15 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     lastHeatDate: '',
     inseminationNumber: 0,
     bull: '',
-    diagnosisStatus: 'DG+' as 'DG+' | 'DG-',
+    diagnosisStatus: 'DG+' as string,
     dryingDate: '',
-    observations: ''
+    observations: '',
+    del: 0,
+    ps: 0,
+    dpia: 0,
+    ip: 0,
+    expectedIp: 0,
+    expectedCalvingDate: ''
   });
 
   const [error, setError] = useState('');
@@ -52,7 +58,13 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         bull: cowToEdit.bull || '',
         diagnosisStatus: cowToEdit.diagnosisStatus || 'DG+',
         dryingDate: cowToEdit.dryingDate || '',
-        observations: cowToEdit.observations || ''
+        observations: cowToEdit.observations || '',
+        del: cowToEdit.del || 0,
+        ps: cowToEdit.ps || 0,
+        dpia: cowToEdit.dpia || 0,
+        ip: cowToEdit.ip || 0,
+        expectedIp: cowToEdit.expectedIp || 0,
+        expectedCalvingDate: cowToEdit.expectedCalvingDate || ''
       });
     } else {
       setFormData({
@@ -72,7 +84,13 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         bull: '',
         diagnosisStatus: 'DG+',
         dryingDate: '',
-        observations: ''
+        observations: '',
+        del: 0,
+        ps: 0,
+        dpia: 0,
+        ip: 0,
+        expectedIp: 0,
+        expectedCalvingDate: ''
       });
     }
     setError('');
@@ -97,7 +115,6 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
 
     const trimmedTag = formData.numberTag.trim();
 
-    // Validação de número de brinco duplicado mantendo o modal aberto
     if (trimmedTag) {
       const duplicateCow = cows.find(
         c => c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() && 
@@ -159,7 +176,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Situação</label>
-            <select className="w-full p-2 border rounded" value={formData.situation} onChange={e => setFormData({...formData, situation: e.target.value as 'L' | 'S'})}>
+            <select className="w-full p-2 border rounded" value={formData.situation} onChange={e => setFormData({...formData, situation: e.target.value})}>
               <option value="L">L - Lactação</option>
               <option value="S">S - Seca</option>
             </select>
@@ -174,14 +191,15 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Crias</label>
-            <input type="number" className="w-full p-2 border rounded" value={formData.offspringCount} onChange={e => setFormData({...formData, offspringCount: Number(e.target.value)} )} />
+            <input type="number" className="w-full p-2 border rounded" value={formData.offspringCount} onChange={e => setFormData({...formData, offspringCount: Number(e.target.value)})} />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Sexo da Cria</label>
-            <select className="w-full p-2 border rounded" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as 'F' | 'M' | 'MF'})}>
+            <select className="w-full p-2 border rounded" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}>
               <option value="F">Fêmea (F)</option>
               <option value="M">Macho (M)</option>
               <option value="MF">Macho/Fêmea (MF)</option>
+              <option value="NM">Não Informado (NM)</option>
             </select>
           </div>
         </div>
@@ -227,7 +245,8 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Status DG</label>
-            <select className="w-full p-2 border rounded" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value as 'DG+' | 'DG-'})}>
+            <select className="w-full p-2 border rounded" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value})}>
+              <option value="">Nenhum</option>
               <option value="DG+">DG+</option>
               <option value="DG-">DG-</option>
             </select>
