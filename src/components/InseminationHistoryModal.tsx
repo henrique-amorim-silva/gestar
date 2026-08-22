@@ -14,9 +14,39 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const [editDate, setEditDate] = useState('');
   const [editBull, setEditBull] = useState('');
 
-  // Função auxiliar para padronizar e extrair a data de qualquer formato de registro legado
+  // Função ultra-robusta para encontrar a data
   const getItemDate = (item: any) => {
-    return item.lastInseminationDate || item.date || '';
+    if (!item) return '';
+    const directMatch = item.lastInseminationDate || item.date || item.inseminationDate || item.dia || item.data;
+    if (directMatch) return directMatch;
+
+    const values = Object.values(item);
+    for (const val of values) {
+      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+        return val;
+      }
+    }
+    return '';
+  };
+
+  // Função ultra-robusta para encontrar o nome do touro
+  const getItemBull = (item: any, fallbackCowBull?: string) => {
+    if (!item) return fallbackCowBull || '-';
+    
+    // Tenta todas as chaves possíveis
+    const directMatch = item.bull || item.touro || item.sire || item.reprodutor || item.bullName;
+    if (directMatch) return directMatch;
+
+    // Se não achou nas chaves diretas, percorre todas as propriedades do objeto procurando por uma string válida que não seja data
+    const values = Object.values(item);
+    for (const val of values) {
+      if (typeof val === 'string' && val.trim() !== '' && !/^\d{4}-\d{2}-\d{2}/.test(val) && !/^\d+$/.test(val)) {
+        return val;
+      }
+    }
+
+    // Se ainda assim não achar, usa o touro atual da vaca como último recurso
+    return fallbackCowBull || '-';
   };
 
   useEffect(() => {
@@ -24,7 +54,7 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
 
     let insHistory = cow.inseminationHistory ? [...cow.inseminationHistory] : [];
     
-    // Se o histórico estiver vazio mas a vaca tiver uma IA atual, insere como primeiro registro
+    // Se o histórico estiver vazio mas a vaca tiver uma IA atual, insere preenchendo o registro
     if (insHistory.length === 0 && cow.lastInseminationDate) {
       insHistory.push({
         lastInseminationDate: cow.lastInseminationDate,
@@ -33,7 +63,7 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
       });
     }
 
-    // Ordena do mais recente para o mais antigo usando a data extraída com segurança
+    // Ordena do mais recente para o mais antigo
     insHistory.sort((a, b) => {
       const dateA = new Date(getItemDate(a)).getTime() || 0;
       const dateB = new Date(getItemDate(b)).getTime() || 0;
@@ -49,11 +79,6 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const handleDelete = (indexToDelete: number) => {
     if (window.confirm('Tem certeza que deseja excluir este registro de Inseminação?')) {
       const updated = history.filter((_, i) => i !== indexToDelete);
-      updated.sort((a, b) => {
-        const dateA = new Date(getItemDate(a)).getTime() || 0;
-        const dateB = new Date(getItemDate(b)).getTime() || 0;
-        return dateB - dateA;
-      });
       setHistory(updated);
       onUpdateHistory(cow.id, updated);
     }
@@ -62,21 +87,15 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const handleStartEdit = (index: number, item: any) => {
     setEditingIndex(index);
     setEditDate(getItemDate(item));
-    setEditBull(item.bull || '');
+    setEditBull(getItemBull(item, cow.bull));
   };
 
   const handleSaveEdit = (indexToEdit: number) => {
     const updated = history.map((item, i) => {
       if (i === indexToEdit) {
-        return { ...item, lastInseminationDate: editDate, date: undefined, bull: editBull };
+        return { ...item, lastInseminationDate: editDate, date: editDate, bull: editBull };
       }
       return item;
-    });
-
-    updated.sort((a, b) => {
-      const dateA = new Date(getItemDate(a)).getTime() || 0;
-      const dateB = new Date(getItemDate(b)).getTime() || 0;
-      return dateB - dateA;
     });
     
     setHistory(updated);
@@ -104,6 +123,8 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
             {history.map((item, index) => {
               const currentDate = getItemDate(item);
+              const currentBull = getItemBull(item, cow.bull);
+              
               return (
                 <div key={index} className="border rounded p-2.5 bg-gray-50 flex justify-between items-center text-xs">
                   <div className="flex items-center gap-3">
@@ -126,8 +147,10 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
                       </div>
                     ) : (
                       <div>
-                        <span className="font-semibold text-gray-800">Data: {currentDate || 'Não informada'}</span>
-                        <span className="ml-3 text-indigo-700 font-medium">Touro: {item.bull || '-'}</span>
+                        <span className="font-semibold text-gray-800">
+                          Data: {currentDate ? new Date(currentDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
+                        </span>
+                        <span className="ml-3 text-indigo-700 font-medium">Touro: {currentBull}</span>
                       </div>
                     )}
                   </div>
