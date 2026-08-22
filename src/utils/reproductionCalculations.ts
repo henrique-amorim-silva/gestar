@@ -1,13 +1,14 @@
 export function calculateReproductionFields(data: {
   currentCalvingDate: string;
   previousCalvingDate?: string;
-  lastInseminationDate?: string;
+  lastInseminationDate?: string; // Atualizado pelo fluxo de +IA
+  firstInseminationDate?: string; // Manual (Legado)
+  firstHeatDate?: string;         // Manual (Legado)
   inseminationNumber: number;
 }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Função auxiliar para diferença em dias (Data Final - Data Inicial)
   const getDaysBetween = (startDateStr: string, endDateStr: string) => {
     if (!startDateStr || !endDateStr) return 0;
     const start = new Date(startDateStr + 'T00:00:00');
@@ -16,40 +17,33 @@ export function calculateReproductionFields(data: {
     return Math.round(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // 1. DEL: Dias entre o Parto Atual e Hoje
+  // Cálculos básicos
   const del = data.currentCalvingDate ? Math.max(0, getDaysBetween(data.currentCalvingDate, today.toISOString().split('T')[0])) : 0;
+  const ps = (data.currentCalvingDate && data.lastInseminationDate) ? Math.max(0, getDaysBetween(data.currentCalvingDate, data.lastInseminationDate)) : 0;
+  const dpia = data.lastInseminationDate ? Math.max(0, getDaysBetween(data.lastInseminationDate, today.toISOString().split('T')[0])) : 0;
 
-  // 2. PS: Dias do Parto Atual até a Última IA
-  const ps = (data.currentCalvingDate && data.lastInseminationDate) 
-    ? Math.max(0, getDaysBetween(data.currentCalvingDate, data.lastInseminationDate)) 
-    : 0;
-
-  // 3. DPIA: Dias Pós-Inseminação (Dias desde a Última IA até hoje)
-  const dpia = data.lastInseminationDate 
-    ? Math.max(0, getDaysBetween(data.lastInseminationDate, today.toISOString().split('T')[0])) 
-    : 0;
-
-  // 4. Previsão de Parto (Última IA + 283 dias de gestação média)
+  // Previsão de Parto (280 dias)
   let expectedCalvingDate = '';
   if (data.lastInseminationDate) {
     const lastInsem = new Date(data.lastInseminationDate + 'T00:00:00');
-    lastInsem.setDate(lastInsem.getDate() + 283);
+    lastInsem.setDate(lastInsem.getDate() + 280);
     expectedCalvingDate = lastInsem.toISOString().split('T')[0];
   }
 
-  // 5. IP (Intervalo de Partos) em meses: (Parto Atual - Parto Ant.) / 30.416
-  let ip = 0;
-  if (data.previousCalvingDate && data.currentCalvingDate) {
-    const diffDays = getDaysBetween(data.previousCalvingDate, data.currentCalvingDate);
-    ip = Number((diffDays / 30.416).toFixed(1));
+  // Data de Secar (60 dias antes da Previsão de Parto)
+  let dryingDate = '';
+  if (expectedCalvingDate) {
+    const calving = new Date(expectedCalvingDate + 'T00:00:00');
+    calving.setDate(calving.getDate() - 60);
+    dryingDate = calving.toISOString().split('T')[0];
   }
 
-  // 6. IP Previsto em meses: (Previsão de Parto - Parto Atual) / 30.416
-  let expectedIp = 0;
-  if (data.currentCalvingDate && expectedCalvingDate) {
-    const diffDays = getDaysBetween(data.currentCalvingDate, expectedCalvingDate);
-    expectedIp = Number((diffDays / 30.416).toFixed(1));
-  }
+  // Intervalos em meses
+  const ip = (data.previousCalvingDate && data.currentCalvingDate) 
+    ? Number((getDaysBetween(data.previousCalvingDate, data.currentCalvingDate) / 30.416).toFixed(1)) : 0;
+  
+  const expectedIp = (data.currentCalvingDate && expectedCalvingDate) 
+    ? Number((getDaysBetween(data.currentCalvingDate, expectedCalvingDate) / 30.416).toFixed(1)) : 0;
 
   return {
     del,
@@ -58,6 +52,10 @@ export function calculateReproductionFields(data: {
     ip: Math.max(0, ip),
     expectedIp: Math.max(0, expectedIp),
     expectedCalvingDate,
-    heatsCount: data.inseminationNumber
+    dryingDate, // <--- Adicionado o campo de secar calculado
+    heatsCount: data.inseminationNumber,
+    firstHeatDate: data.firstHeatDate || data.firstInseminationDate || '',
+    firstInseminationDate: data.firstInseminationDate || '',
+    lastHeatDate: data.lastInseminationDate || ''
   };
 }
