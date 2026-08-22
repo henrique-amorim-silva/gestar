@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Cow } from '../types/cow';
 
 interface CowFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cow: Omit<Cow, 'id'>) => void;
+  onSave: (cowData: Omit<Cow, 'id'>) => void;
+  cowToEdit?: Cow | null;
 }
 
-export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave }) => {
-  const [formData, setFormData] = useState({
+export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowToEdit }) => {
+  const initialFormState = {
     order: 1,
     numberTag: '',
     name: '',
@@ -34,7 +35,17 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave }) => 
     diagnosisStatus: 'DG+' as 'DG+' | 'DG-',
     dryingDate: '',
     observations: ''
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormState);
+
+  useEffect(() => {
+    if (cowToEdit) {
+      setFormData(cowToEdit);
+    } else {
+      setFormData(initialFormState);
+    }
+  }, [cowToEdit, isOpen]);
 
   if (!isOpen) return null;
 
@@ -47,7 +58,9 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave }) => 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Cadastrar Nova Vaca</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-4 border-b pb-2">
+          {cowToEdit ? 'Editar Dados da Vaca' : 'Cadastrar Nova Vaca'}
+        </h2>
         
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
           <div>
@@ -173,7 +186,7 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave }) => 
               type="submit"
               className="px-4 py-2 bg-emerald-700 text-white rounded hover:bg-emerald-800 font-medium"
             >
-              Salvar Vaca
+              {cowToEdit ? 'Salvar Alterações' : 'Salvar Vaca'}
             </button>
           </div>
         </form>

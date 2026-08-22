@@ -3,14 +3,17 @@ import type { Cow } from '../types/cow';
 
 interface CowTableProps {
   cows: Cow[];
+  onEdit: (cow: Cow) => void;
+  onDelete: (id: number) => void;
 }
 
-export const CowTable: React.FC<CowTableProps> = ({ cows }) => {
+export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete }) => {
   return (
     <div className="w-full overflow-x-auto shadow-md sm:rounded-lg border border-gray-200 bg-white">
       <table className="w-full text-left text-xs text-gray-700 whitespace-nowrap">
         <thead className="bg-emerald-800 text-white uppercase font-semibold">
           <tr>
+            <th className="px-3 py-3 text-center sticky left-0 bg-emerald-800 z-10">Ações</th>
             <th className="px-3 py-3">Ord.</th>
             <th className="px-3 py-3">Num.</th>
             <th className="px-3 py-3">Vacas</th>
@@ -41,6 +44,28 @@ export const CowTable: React.FC<CowTableProps> = ({ cows }) => {
         <tbody className="divide-y divide-gray-200">
           {cows.map((cow) => (
             <tr key={cow.id} className="hover:bg-emerald-50 transition-colors">
+              <td className="px-3 py-2 text-center sticky left-0 bg-white shadow-sm">
+                <div className="flex items-center justify-center gap-1">
+                  <button
+                    onClick={() => onEdit(cow)}
+                    className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 font-medium"
+                    title="Editar Vaca"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Tem certeza que deseja excluir a vaca ${cow.name}?`)) {
+                        onDelete(cow.id);
+                      }
+                    }}
+                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 font-medium"
+                    title="Excluir Vaca"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </td>
               <td className="px-3 py-2 font-medium">{cow.order}</td>
               <td className="px-3 py-2">{cow.numberTag}</td>
               <td className="px-3 py-2 font-bold text-gray-900">{cow.name}</td>

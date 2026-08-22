@@ -18,17 +18,39 @@ export function App() {
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cowToEdit, setCowToEdit] = useState<Cow | null>(null);
 
   useEffect(() => {
     localStorage.setItem('@gestar_cows', JSON.stringify(cows));
   }, [cows]);
 
-  const handleAddCow = (newCowData: Omit<Cow, 'id'>) => {
-    const newCow: Cow = {
-      ...newCowData,
-      id: Date.now(), // ID único baseado no timestamp
-    };
-    setCows([newCow, ...cows]);
+  const handleSaveCow = (cowData: Omit<Cow, 'id'>) => {
+    if (cowToEdit) {
+      // Editando vaca existente
+      setCows(cows.map(cow => cow.id === cowToEdit.id ? { ...cowData, id: cow.id } : cow));
+      setCowToEdit(null);
+    } else {
+      // Criando nova vaca
+      const newCow: Cow = {
+        ...cowData,
+        id: Date.now(),
+      };
+      setCows([newCow, ...cows]);
+    }
+  };
+
+  const handleOpenCreateModal = () => {
+    setCowToEdit(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditCow = (cow: Cow) => {
+    setCowToEdit(cow);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteCow = (id: number) => {
+    setCows(cows.filter(cow => cow.id !== id));
   };
 
   return (
@@ -50,7 +72,7 @@ export function App() {
               Total de Matrizes: {cows.length}
             </div>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleOpenCreateModal}
               className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold px-4 py-2 rounded-lg shadow transition-colors text-sm"
             >
               + Nova Vaca
@@ -60,14 +82,22 @@ export function App() {
 
         {/* Tabela de Registros */}
         <main>
-          <CowTable cows={cows} />
+          <CowTable 
+            cows={cows} 
+            onEdit={handleEditCow} 
+            onDelete={handleDeleteCow} 
+          />
         </main>
 
-        {/* Modal de Cadastro */}
+        {/* Modal de Cadastro / Edição */}
         <CowForm
           isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onSave={handleAddCow}
+          onClose={() => {
+            setIsModalOpen(false);
+            setCowToEdit(null);
+          }}
+          onSave={handleSaveCow}
+          cowToEdit={cowToEdit}
         />
       </div>
     </div>
