@@ -24,18 +24,20 @@ export function App() {
     localStorage.setItem('@gestar_cows', JSON.stringify(cows));
   }, [cows]);
 
-  const handleSaveCow = (cowData: Omit<Cow, 'id'>) => {
+  const handleSaveCow = (cowData: Omit<Cow, 'id' | 'order'>) => {
     if (cowToEdit) {
-      // Editando vaca existente
-      setCows(cows.map(cow => cow.id === cowToEdit.id ? { ...cowData, id: cow.id } : cow));
+      // Editando vaca existente (mantém a ordem original)
+      setCows(cows.map(cow => cow.id === cowToEdit.id ? { ...cowData, id: cow.id, order: cow.order } : cow));
       setCowToEdit(null);
     } else {
-      // Criando nova vaca
+      // Criando nova vaca (atribui a próxima ordem sequencial)
+      const nextOrder = cows.length > 0 ? Math.max(...cows.map(c => c.order)) + 1 : 1;
       const newCow: Cow = {
         ...cowData,
         id: Date.now(),
+        order: nextOrder,
       };
-      setCows([newCow, ...cows]);
+      setCows([...cows, newCow]);
     }
   };
 
@@ -50,7 +52,12 @@ export function App() {
   };
 
   const handleDeleteCow = (id: number) => {
-    setCows(cows.filter(cow => cow.id !== id));
+    // Exclui e renumera a ordem sequencialmente para manter organizado
+    const updatedCows = cows
+      .filter(cow => cow.id !== id)
+      .map((cow, index) => ({ ...cow, order: index + 1 }));
+    
+    setCows(updatedCows);
   };
 
   return (

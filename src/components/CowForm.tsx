@@ -4,13 +4,12 @@ import type { Cow } from '../types/cow';
 interface CowFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cowData: Omit<Cow, 'id'>) => void;
+  onSave: (cowData: Omit<Cow, 'id' | 'order'>) => void;
   cowToEdit?: Cow | null;
 }
 
 export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowToEdit }) => {
   const initialFormState = {
-    order: 1,
     numberTag: '',
     name: '',
     situation: 'L' as 'L' | 'S',
@@ -41,7 +40,32 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
 
   useEffect(() => {
     if (cowToEdit) {
-      setFormData(cowToEdit);
+      setFormData({
+        numberTag: cowToEdit.numberTag,
+        name: cowToEdit.name,
+        situation: cowToEdit.situation,
+        categoryGS: cowToEdit.categoryGS,
+        offspringCount: cowToEdit.offspringCount,
+        gender: cowToEdit.gender,
+        currentCalvingDate: cowToEdit.currentCalvingDate,
+        previousCalvingDate: cowToEdit.previousCalvingDate,
+        firstHeatDate: cowToEdit.firstHeatDate,
+        firstInseminationDate: cowToEdit.firstInseminationDate,
+        lastHeatDate: cowToEdit.lastHeatDate,
+        lastInseminationDate: cowToEdit.lastInseminationDate,
+        inseminationNumber: cowToEdit.inseminationNumber,
+        heatsCount: cowToEdit.heatsCount,
+        del: cowToEdit.del,
+        ps: cowToEdit.ps,
+        dpia: cowToEdit.dpia,
+        ip: cowToEdit.ip,
+        expectedIp: cowToEdit.expectedIp,
+        expectedCalvingDate: cowToEdit.expectedCalvingDate,
+        bull: cowToEdit.bull,
+        diagnosisStatus: cowToEdit.diagnosisStatus,
+        dryingDate: cowToEdit.dryingDate,
+        observations: cowToEdit.observations
+      });
     } else {
       setFormData(initialFormState);
     }
@@ -63,17 +87,6 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
         </h2>
         
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <label className="block font-medium text-gray-700">Ordem (Ord.)</label>
-            <input
-              type="number"
-              className="mt-1 w-full border rounded p-2"
-              value={formData.order}
-              onChange={e => setFormData({ ...formData, order: Number(e.target.value) })}
-              required
-            />
-          </div>
-
           <div>
             <label className="block font-medium text-gray-700">Número (Brinco)</label>
             <input
@@ -164,7 +177,7 @@ export const CowForm: React.FC<CowFormProps> = ({ isOpen, onClose, onSave, cowTo
             </select>
           </div>
 
-          <div>
+          <div className="md:col-span-2">
             <label className="block font-medium text-gray-700">Observações</label>
             <input
               type="text"
