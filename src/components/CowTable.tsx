@@ -11,6 +11,15 @@ interface CowTableProps {
   onOpenInseminationHistory: (cow: Cow) => void;
 }
 
+// Função auxiliar para formatar AAAA-MM-DD em DD/MM/AAAA de forma segura
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return '-';
+  // Se já estiver no formato brasileiro ou for texto customizado, retorna como está
+  if (!/^\d{4}-\d{2}-\d{2}/.test(dateString)) return dateString;
+  const [year, month, day] = dateString.split('T')[0].split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export const CowTable: React.FC<CowTableProps> = ({ 
   cows, 
   onEdit, 
@@ -55,7 +64,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">Sexo</th>
                 <th className="px-2 py-2.5 bg-emerald-800">Parto Atual</th>
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
-                  <div className="flex justify-center">Hist.</div>
+                  <div className="flex justify-center">Hist. Parto</div>
                 </th>
                 <th className="px-2 py-2.5 bg-emerald-800">Parto Ant.</th>
                 <th className="px-2 py-2.5 bg-emerald-800">1º Cio/IA</th>
@@ -137,7 +146,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.gender}</td>
                       
                       {/* Parto Atual */}
-                      <td className="px-2 py-2 whitespace-nowrap">{cow.currentCalvingDate || '-'}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(cow.currentCalvingDate)}</td>
 
                       {/* Histórico de Parto */}
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">
@@ -151,10 +160,10 @@ export const CowTable: React.FC<CowTableProps> = ({
                       </td>
 
                       {/* Parto Anterior */}
-                      <td className="px-2 py-2 whitespace-nowrap">{cow.previousCalvingDate || '-'}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(cow.previousCalvingDate)}</td>
 
-                      <td className="px-2 py-2 whitespace-nowrap">{cow.firstInseminationDate || cow.firstHeatDate}</td>
-                      <td className="px-2 py-2 whitespace-nowrap">{cow.lastInseminationDate || cow.lastHeatDate}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(cow.firstInseminationDate || cow.firstHeatDate)}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(cow.lastInseminationDate || cow.lastHeatDate)}</td>
                       
                       {/* Histórico de IA */}
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">
@@ -174,14 +183,14 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.dpia}</td>
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.ip}</td>
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.expectedIp}</td>
-                      <td className="px-2 py-2 whitespace-nowrap">{cow.expectedCalvingDate}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(cow.expectedCalvingDate)}</td>
                       <td className="px-2 py-2 font-medium text-indigo-700 whitespace-nowrap">{cow.bull}</td>
                       <td className="px-1.5 py-2 whitespace-nowrap">
                         <span className={`px-1.5 py-0.5 rounded text-[11px] font-bold ${cow.diagnosisStatus === 'DG+' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                           {cow.diagnosisStatus}
                         </span>
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap">{cow.dryingDate}</td>
+                      <td className="px-2 py-2 whitespace-nowrap">{formatDate(cow.dryingDate)}</td>
                       <td className="px-2 py-2 text-gray-500 whitespace-nowrap">{cow.observations || '-'}</td>
                     </tr>
                   );
