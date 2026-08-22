@@ -6,6 +6,7 @@ import { InseminationModal } from "./components/InseminationModal";
 import { CalvingModal } from "./components/CalvingModal";
 import { CalvingHistoryModal } from "./components/CalvingHistoryModal";
 import { InseminationHistoryModal } from "./components/InseminationHistoryModal";
+import { DashboardKPIs } from "./components/DashboardKPIs"; // <--- Importação dos KPIs
 import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 
@@ -320,7 +321,11 @@ export function App() {
           </button>
         </header>
 
-        <main className="w-full">
+        <main className="w-full space-y-6">
+          {/* Bloco de KPIs / Indicadores Reprodutivos */}
+          <DashboardKPIs cows={cows} />
+
+          {/* Tabela Principal */}
           <CowTable
             cows={cows}
             onEdit={handleEditCow}
