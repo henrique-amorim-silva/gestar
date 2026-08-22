@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { INITIAL_COWS } from './data/initialCows';
 import { CowTable } from './components/CowTable';
 import { CowForm } from './components/CowForm';
+import { InseminationModal } from './components/InseminationModal';
 import type { Cow } from './types/cow';
 
 export function App() {
@@ -20,25 +21,74 @@ export function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cowToEdit, setCowToEdit] = useState<Cow | null>(null);
 
+  const [isInsemModalOpen, setIsInsemModalOpen] = useState(false);
+  const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null);
+
   useEffect(() => {
     localStorage.setItem('@gestar_cows', JSON.stringify(cows));
   }, [cows]);
 
   const handleSaveCow = (cowData: Omit<Cow, 'id' | 'order'>) => {
     if (cowToEdit) {
-      // Editando vaca existente (mantém a ordem original)
-      setCows(cows.map(cow => cow.id === cowToEdit.id ? { ...cowData, id: cow.id, order: cow.order } : cow));
+      setCows(cows.map(cow => cow.id === cowToEdit.id ? { ...cowData, id: cow.id, order: cow.order, inseminationHistory: cow.inseminationHistory } : cow));
       setCowToEdit(null);
     } else {
-      // Criando nova vaca (atribui a próxima ordem sequencial)
       const nextOrder = cows.length > 0 ? Math.max(...cows.map(c => c.order)) + 1 : 1;
       const newCow: Cow = {
         ...cowData,
         id: Date.now(),
         order: nextOrder,
+        inseminationHistory: []
       };
       setCows([...cows, newCow]);
     }
+  };
+
+  const handleSaveInsemination = (cowId: number, insemData: { lastInseminationDate: string; bull: string; incrementInseminationNumber: boolean }) => {
+    setCows(cows.map(cow => {
+      if (cow.id === cowId) {
+        const previousState = {
+          lastInseminationDate: cow.lastInseminationDate,
+          bull: cow.bull,
+          inseminationNumber: cow.inseminationNumber
+        };
+
+        const history = cow.inseminationHistory || [];
+
+        return {
+          ...cow,
+          lastInseminationDate: insemData.lastInseminationDate,
+          bull: insemData.bull,
+          inseminationNumber: insemData.incrementInseminationNumber ? cow.inseminationNumber + 1 : cow.inseminationNumber,
+          inseminationHistory: [previousState, ...history]
+        };
+      }
+      return cow;
+    }));
+  };
+
+  const handleUndoInsemination = (cowId: number) => {
+    setCows(cows.map(cow => {
+      if (cow.id === cowId) {
+        const history = cow.inseminationHistory || [];
+        if (history.length === 0) {
+          alert("Não há lançamentos anteriores de IA para desfazer nesta vaca.");
+          return cow;
+        }
+
+        const lastState = history[0];
+        const remainingHistory = history.slice(1);
+
+        return {
+          ...cow,
+          lastInseminationDate: lastState.lastInseminationDate,
+          bull: lastState.bull,
+          inseminationNumber: lastState.inseminationNumber,
+          inseminationHistory: remainingHistory
+        };
+      }
+      return cow;
+    }));
   };
 
   const handleOpenCreateModal = () => {
@@ -52,12 +102,16 @@ export function App() {
   };
 
   const handleDeleteCow = (id: number) => {
-    // Exclui e renumera a ordem sequencialmente para manter organizado
     const updatedCows = cows
       .filter(cow => cow.id !== id)
       .map((cow, index) => ({ ...cow, order: index + 1 }));
     
     setCows(updatedCows);
+  };
+
+  const handleOpenInseminationModal = (cow: Cow) => {
+    setCowToInseminate(cow);
+    setIsInsemModalOpen(true);
   };
 
   return (
@@ -92,7 +146,9 @@ export function App() {
           <CowTable 
             cows={cows} 
             onEdit={handleEditCow} 
-            onDelete={handleDeleteCow} 
+            onDelete={handleDeleteCow}
+            onInsemination={handleOpenInseminationModal}
+            onUndoInsemination={handleUndoInsemination}
           />
         </main>
 
@@ -105,6 +161,17 @@ export function App() {
           }}
           onSave={handleSaveCow}
           cowToEdit={cowToEdit}
+        />
+
+        {/* Modal de Lançamento de IA */}
+        <InseminationModal
+          isOpen={isInsemModalOpen}
+          onClose={() => {
+            setIsInsemModalOpen(false);
+            setCowToInseminate(null);
+          }}
+          onSave={handleSaveInsemination}
+          cow={cowToInseminate}
         />
       </div>
     </div>

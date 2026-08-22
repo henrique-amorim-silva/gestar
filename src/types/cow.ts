@@ -1,3 +1,9 @@
+export interface InseminationRecord {
+  lastInseminationDate: string;
+  bull: string;
+  inseminationNumber: number;
+}
+
 export interface Cow {
   id: number;
   order: number;
@@ -25,4 +31,5 @@ export interface Cow {
   diagnosisStatus: 'DG+' | 'DG-';
   dryingDate: string;
   observations: string;
+  inseminationHistory?: InseminationRecord[];
 }
