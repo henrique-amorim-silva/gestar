@@ -6,10 +6,11 @@ interface CowTableProps {
   onEdit: (cow: Cow) => void;
   onDelete: (id: number) => void;
   onInsemination: (cow: Cow) => void;
-  onUndoInsemination: (cowId: number) => void; // Nova prop
+  onCalving: (cow: Cow) => void; // <--- Adicionado
+  onUndoInsemination: (cowId: number) => void;
 }
 
-export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onInsemination, onUndoInsemination }) => {
+export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onInsemination, onCalving, onUndoInsemination }) => {
   return (
     <div className="w-full overflow-x-auto shadow-md sm:rounded-lg border border-gray-200 bg-white">
       <table className="w-full text-left text-xs text-gray-700 whitespace-nowrap">
@@ -57,6 +58,13 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
                       title="Lançar Inseminação (IA)"
                     >
                       +IA
+                    </button>
+                    <button
+                      onClick={() => onCalving(cow)}
+                      className="p-1 bg-blue-100 text-blue-800 rounded hover:bg-blue-200 font-bold text-xs px-1.5"
+                      title="Lançar Parto"
+                    >
+                      +Parto
                     </button>
                     {hasHistory && (
                       <button

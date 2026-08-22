@@ -54,7 +54,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
         numberTag: '',
         name: '',
         situation: 'L',
-        categoryGS: '',
+        categoryGS: 'Nulípara',
         offspringCount: 0,
         gender: 'F',
         currentCalvingDate: '',
@@ -70,6 +70,20 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
       });
     }
   }, [cowToEdit, isOpen]);
+
+  // Função auxiliar para sugerir a categoria automaticamente com base no Nº de IAs/Cios
+  const handleInseminationChange = (value: number) => {
+    let autoCategory = formData.categoryGS;
+    if (value === 0) autoCategory = 'Nulípara';
+    else if (value === 1) autoCategory = 'Primípara';
+    else if (value > 1) autoCategory = 'Multípara';
+
+    setFormData({
+      ...formData,
+      inseminationNumber: value,
+      categoryGS: autoCategory
+    });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,7 +125,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Situação</label>
             <select className="w-full p-2 border rounded" value={formData.situation} onChange={e => setFormData({...formData, situation: e.target.value as 'L' | 'S'})}>
@@ -120,13 +134,21 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
             </select>
           </div>
           <div>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Categoria (GS)</label>
+            <select className="w-full p-2 border rounded" value={formData.categoryGS} onChange={e => setFormData({...formData, categoryGS: e.target.value})}>
+              <option value="Nulípara">Nulípara (0 cios)</option>
+              <option value="Primípara">Primípara (1 cio)</option>
+              <option value="Multípara">Multípara (+ de 1 cio)</option>
+            </select>
+          </div>
+          <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Crias</label>
-            <input type="number" className="w-full p-2 border rounded" value={formData.offspringCount} onChange={e => setFormData({...formData, offspringCount: Number(e.target.value)})} />
+            <input type="number" className="w-full p-2 border rounded" value={formData.offspringCount} onChange={e => setFormData({...formData, offspringCount: Number(e.target.value)} )} />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Sexo da Cria</label>
             <select className="w-full p-2 border rounded" value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value as 'F' | 'M' | 'MF'})}>
-              <option value="F">Femea (F)</option>
+              <option value="F">Fêmea (F)</option>
               <option value="M">Macho (M)</option>
               <option value="MF">Macho/Fêmea (MF)</option>
             </select>
@@ -161,8 +183,8 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit }: CowFormProps) {
             <input type="date" className="w-full p-2 border rounded" value={formData.lastInseminationDate} onChange={e => setFormData({...formData, lastInseminationDate: e.target.value})} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs</label>
-            <input type="number" className="w-full p-2 border rounded" value={formData.inseminationNumber} onChange={e => setFormData({...formData, inseminationNumber: Number(e.target.value)})} />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs / Cios</label>
+            <input type="number" className="w-full p-2 border rounded" value={formData.inseminationNumber} onChange={e => handleInseminationChange(Number(e.target.value))} />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Touro</label>

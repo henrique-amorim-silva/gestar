@@ -3,6 +3,12 @@ export interface InseminationRecord {
   bull: string;
   inseminationNumber: number;
   firstInseminationDate?: string;
+  firstHeatDate?: string;
+}
+
+export interface CalvingRecord {
+  currentCalvingDate: string;
+  previousCalvingDate: string;
 }
 
 export interface Cow {
@@ -33,4 +39,5 @@ export interface Cow {
   dryingDate: string;
   observations: string;
   inseminationHistory?: InseminationRecord[];
+  calvingHistory?: CalvingRecord[];
 }

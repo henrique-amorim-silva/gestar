@@ -3,19 +3,40 @@ import { INITIAL_COWS } from "./data/initialCows";
 import { CowTable } from "./components/CowTable";
 import { CowForm } from "./components/CowForm";
 import { InseminationModal } from "./components/InseminationModal";
+import { CalvingModal } from "./components/CalvingModal";
 import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 
 export function App() {
   const [cows, setCows] = useState<Cow[]>(() => {
     const saved = localStorage.getItem("@gestar_cows");
-    return saved ? JSON.parse(saved) : INITIAL_COWS;
+    if (saved) {
+      const parsedCows: Cow[] = JSON.parse(saved);
+      // Recalcula dinamicamente os campos com base na data de hoje ao carregar do localStorage
+      return parsedCows.map((cow) => {
+        const calculated = calculateReproductionFields({
+          currentCalvingDate: cow.currentCalvingDate,
+          previousCalvingDate: cow.previousCalvingDate,
+          lastInseminationDate: cow.lastInseminationDate,
+          firstInseminationDate: cow.firstInseminationDate,
+          firstHeatDate: cow.firstHeatDate,
+          inseminationNumber: cow.inseminationNumber,
+        });
+        return {
+          ...cow,
+          ...calculated,
+        };
+      });
+    }
+    return INITIAL_COWS;
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [cowToEdit, setCowToEdit] = useState<Cow | null>(null);
   const [isInsemModalOpen, setIsInsemModalOpen] = useState(false);
   const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null);
+  const [isCalvingModalOpen, setIsCalvingModalOpen] = useState(false);
+  const [cowToCalve, setCowToCalve] = useState<Cow | null>(null);
 
   useEffect(() => {
     localStorage.setItem("@gestar_cows", JSON.stringify(cows));
@@ -29,6 +50,7 @@ export function App() {
         firstHeatDate: cowData.firstHeatDate || "",
         firstInseminationDate: cowData.firstInseminationDate || "",
         previousCalvingDate: cowData.previousCalvingDate || "",
+        currentCalvingDate: cowData.currentCalvingDate || "",
         lastInseminationDate: cowData.lastInseminationDate || "",
         lastHeatDate: cowData.lastHeatDate || "",
         numberTag: cowData.numberTag || "",
@@ -51,15 +73,54 @@ export function App() {
         firstHeatDate: cowData.firstHeatDate || "",
         firstInseminationDate: cowData.firstInseminationDate || "",
         previousCalvingDate: cowData.previousCalvingDate || "",
+        currentCalvingDate: cowData.currentCalvingDate || "",
         lastInseminationDate: cowData.lastInseminationDate || "",
         lastHeatDate: cowData.lastHeatDate || "",
         bull: cowData.bull || "",
         dryingDate: cowData.dryingDate || "",
         observations: cowData.observations || "",
         inseminationHistory: [],
+        calvingHistory: [],
       };
       setCows([...cows, newCow]);
     }
+  };
+
+  const handleSaveCalving = (cowId: number, newCalvingDate: string) => {
+    setCows(
+      cows.map((cow) => {
+        if (cow.id === cowId) {
+          const previousState = {
+            currentCalvingDate: cow.currentCalvingDate,
+            previousCalvingDate: cow.previousCalvingDate,
+          };
+
+          const updatedPreviousCalving = cow.currentCalvingDate || cow.previousCalvingDate;
+          const updatedCurrentCalving = newCalvingDate;
+
+          const calculated = calculateReproductionFields({
+            currentCalvingDate: updatedCurrentCalving,
+            previousCalvingDate: updatedPreviousCalving,
+            lastInseminationDate: cow.lastInseminationDate,
+            firstInseminationDate: cow.firstInseminationDate,
+            firstHeatDate: cow.firstHeatDate,
+            inseminationNumber: cow.inseminationNumber,
+          });
+
+          return {
+            ...cow,
+            ...calculated,
+            currentCalvingDate: updatedCurrentCalving,
+            previousCalvingDate: updatedPreviousCalving,
+            calvingHistory: [
+              previousState,
+              ...(cow.calvingHistory || []),
+            ],
+          };
+        }
+        return cow;
+      })
+    );
   };
 
   const handleSaveInsemination = (
@@ -77,31 +138,40 @@ export function App() {
             lastInseminationDate: cow.lastInseminationDate,
             bull: cow.bull,
             inseminationNumber: cow.inseminationNumber,
+            firstInseminationDate: cow.firstInseminationDate,
+            firstHeatDate: cow.firstHeatDate,
           };
 
           const newInsemNumber = insemData.incrementInseminationNumber
             ? cow.inseminationNumber + 1
-            : cow.inseminationNumber;
+            : cow.inseminationNumber || 1;
+
+          let newCategoryGS = cow.categoryGS;
+          if (newInsemNumber === 0) newCategoryGS = "Nulípara";
+          else if (newInsemNumber === 1) newCategoryGS = "Primípara";
+          else if (newInsemNumber > 1) newCategoryGS = "Multípara";
+
+          const firstInseminationDate = cow.firstInseminationDate || insemData.lastInseminationDate;
+          const firstHeatDate = cow.firstHeatDate || insemData.lastInseminationDate;
 
           const calculated = calculateReproductionFields({
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
             lastInseminationDate: insemData.lastInseminationDate,
-            firstInseminationDate: cow.firstInseminationDate,
-            firstHeatDate: cow.firstHeatDate,
+            firstInseminationDate: firstInseminationDate,
+            firstHeatDate: firstHeatDate,
             inseminationNumber: newInsemNumber,
           });
 
           return {
             ...cow,
+            ...calculated,
             lastInseminationDate: insemData.lastInseminationDate,
             bull: insemData.bull,
             inseminationNumber: newInsemNumber,
-            ...calculated,
-            // Garante explicitamente que nenhum campo calculado opcional vire undefined
-            firstHeatDate: calculated.firstHeatDate || "",
-            firstInseminationDate: calculated.firstInseminationDate || "",
-            lastHeatDate: calculated.lastHeatDate || "",
+            categoryGS: newCategoryGS,
+            firstInseminationDate,
+            firstHeatDate,
             inseminationHistory: [
               previousState,
               ...(cow.inseminationHistory || []),
@@ -124,25 +194,32 @@ export function App() {
           const lastState = cow.inseminationHistory[0];
           const remainingHistory = cow.inseminationHistory.slice(1);
 
+          let revertedCategoryGS = cow.categoryGS;
+          if (lastState.inseminationNumber === 0) revertedCategoryGS = "Nulípara";
+          else if (lastState.inseminationNumber === 1) revertedCategoryGS = "Primípara";
+          else if (lastState.inseminationNumber > 1) revertedCategoryGS = "Multípara";
+
+          const targetFirstInsem = lastState.firstInseminationDate ?? "";
+          const targetFirstHeat = lastState.firstHeatDate ?? "";
+
           const calculated = calculateReproductionFields({
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
-            lastInseminationDate: lastState.lastInseminationDate,
-            firstInseminationDate: cow.firstInseminationDate,
-            firstHeatDate: cow.firstHeatDate,
+            lastInseminationDate: lastState.lastInseminationDate || "",
+            firstInseminationDate: targetFirstInsem,
+            firstHeatDate: targetFirstHeat,
             inseminationNumber: lastState.inseminationNumber,
           });
 
           return {
             ...cow,
-            lastInseminationDate: lastState.lastInseminationDate,
-            bull: lastState.bull,
-            inseminationNumber: lastState.inseminationNumber,
             ...calculated,
-            // Garante explicitamente que nenhum campo calculado opcional vire undefined
-            firstHeatDate: calculated.firstHeatDate || "",
-            firstInseminationDate: calculated.firstInseminationDate || "",
-            lastHeatDate: calculated.lastHeatDate || "",
+            lastInseminationDate: lastState.lastInseminationDate || "",
+            bull: lastState.bull || "",
+            inseminationNumber: lastState.inseminationNumber,
+            categoryGS: revertedCategoryGS,
+            firstInseminationDate: targetFirstInsem,
+            firstHeatDate: targetFirstHeat,
             inseminationHistory: remainingHistory,
           };
         }
@@ -166,6 +243,10 @@ export function App() {
   const handleOpenInseminationModal = (cow: Cow) => {
     setCowToInseminate(cow);
     setIsInsemModalOpen(true);
+  };
+  const handleOpenCalvingModal = (cow: Cow) => {
+    setCowToCalve(cow);
+    setIsCalvingModalOpen(true);
   };
 
   return (
@@ -191,6 +272,7 @@ export function App() {
             onEdit={handleEditCow}
             onDelete={handleDeleteCow}
             onInsemination={handleOpenInseminationModal}
+            onCalving={handleOpenCalvingModal}
             onUndoInsemination={handleUndoInsemination}
           />
         </main>
@@ -206,6 +288,12 @@ export function App() {
           onClose={() => setIsInsemModalOpen(false)}
           onSave={handleSaveInsemination}
           cow={cowToInseminate}
+        />
+        <CalvingModal
+          isOpen={isCalvingModalOpen}
+          onClose={() => setIsCalvingModalOpen(false)}
+          onSave={handleSaveCalving}
+          cow={cowToCalve}
         />
       </div>
     </div>
