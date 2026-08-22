@@ -7,10 +7,19 @@ interface CowTableProps {
   onDelete: (id: number) => void;
   onInsemination: (cow: Cow) => void;
   onCalving: (cow: Cow) => void;
-  onUndoInsemination: (cowId: number) => void;
+  onOpenCalvingHistory: (cow: Cow) => void;
+  onOpenInseminationHistory: (cow: Cow) => void; // Novo prop adicionado
 }
 
-export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onInsemination, onCalving, onUndoInsemination }) => {
+export const CowTable: React.FC<CowTableProps> = ({ 
+  cows, 
+  onEdit, 
+  onDelete, 
+  onInsemination, 
+  onCalving, 
+  onOpenCalvingHistory,
+  onOpenInseminationHistory 
+}) => {
   return (
     <div className="w-full shadow-md sm:rounded-lg border border-gray-200 bg-white overflow-hidden">
       <div className="w-full overflow-x-auto xl:overflow-x-visible">
@@ -26,9 +35,15 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
               <th className="px-1.5 py-2.5 text-center">Crias</th>
               <th className="px-1.5 py-2.5 text-center">Sexo</th>
               <th className="px-2 py-2.5">Parto Atual</th>
+              <th className="px-1.5 py-2.5 text-center">
+                <div className="flex justify-center">Hist.</div>
+              </th>
               <th className="px-2 py-2.5">Parto Ant.</th>
               <th className="px-2 py-2.5">1º Cio/IA</th>
               <th className="px-2 py-2.5">Últ. Cio/IA</th>
+              <th className="px-1.5 py-2.5 text-center">
+                <div className="flex justify-center">Hist. IA</div>
+              </th>
               <th className="px-1.5 py-2.5 text-center">Nº IA</th>
               <th className="px-1.5 py-2.5 text-center">Cios</th>
               <th className="px-1.5 py-2.5 text-center">DEL</th>
@@ -45,8 +60,6 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
           </thead>
           <tbody className="divide-y divide-gray-200">
             {cows.map((cow) => {
-              const hasHistory = cow.inseminationHistory && cow.inseminationHistory.length > 0;
-
               return (
                 <tr key={cow.id} className="hover:bg-emerald-50 transition-colors">
                   <td className="px-2 py-2 text-center sticky left-0 bg-white shadow-sm whitespace-nowrap">
@@ -65,19 +78,6 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
                       >
                         +Parto
                       </button>
-                      {hasHistory && (
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Deseja desfazer o último lançamento de IA da vaca ${cow.name}?`)) {
-                              onUndoInsemination(cow.id);
-                            }
-                          }}
-                          className="p-1 bg-amber-100 text-amber-800 rounded hover:bg-amber-200 text-[10px] px-1"
-                          title="Desfazer Última IA"
-                        >
-                          ↩️
-                        </button>
-                      )}
                       <button
                         onClick={() => onEdit(cow)}
                         className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
@@ -109,10 +109,38 @@ export const CowTable: React.FC<CowTableProps> = ({ cows, onEdit, onDelete, onIn
                   <td className="px-2 py-2 whitespace-nowrap">{cow.categoryGS || '-'}</td>
                   <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.offspringCount}</td>
                   <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.gender}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{cow.currentCalvingDate}</td>
-                  <td className="px-2 py-2 whitespace-nowrap">{cow.previousCalvingDate}</td>
+                  
+                  {/* Parto Atual */}
+                  <td className="px-2 py-2 whitespace-nowrap">{cow.currentCalvingDate || '-'}</td>
+
+                  {/* Histórico de Parto */}
+                  <td className="px-1.5 py-2 text-center whitespace-nowrap">
+                    <button
+                      onClick={() => onOpenCalvingHistory(cow)}
+                      className="p-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 text-[10px] px-1.5 font-bold shadow-sm"
+                      title="Ver Histórico de Partos"
+                    >
+                      📜
+                    </button>
+                  </td>
+
+                  {/* Parto Anterior */}
+                  <td className="px-2 py-2 whitespace-nowrap">{cow.previousCalvingDate || '-'}</td>
+
                   <td className="px-2 py-2 whitespace-nowrap">{cow.firstInseminationDate || cow.firstHeatDate}</td>
                   <td className="px-2 py-2 whitespace-nowrap">{cow.lastInseminationDate || cow.lastHeatDate}</td>
+                  
+                  {/* Histórico de IA */}
+                  <td className="px-1.5 py-2 text-center whitespace-nowrap">
+                    <button
+                      onClick={() => onOpenInseminationHistory(cow)}
+                      className="p-1 bg-emerald-50 text-emerald-700 rounded hover:bg-emerald-100 text-[10px] px-1.5 font-bold shadow-sm border border-emerald-200"
+                      title="Ver Histórico de Inseminações"
+                    >
+                      📋
+                    </button>
+                  </td>
+
                   <td className="px-1.5 py-2 text-center font-semibold whitespace-nowrap">{cow.inseminationNumber}</td>
                   <td className="px-1.5 py-2 text-center whitespace-nowrap">{cow.heatsCount}</td>
                   <td className="px-1.5 py-2 text-center font-bold text-emerald-700 whitespace-nowrap">{cow.del}</td>

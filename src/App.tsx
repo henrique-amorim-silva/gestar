@@ -4,6 +4,8 @@ import { CowTable } from "./components/CowTable";
 import { CowForm } from "./components/CowForm";
 import { InseminationModal } from "./components/InseminationModal";
 import { CalvingModal } from "./components/CalvingModal";
+import { CalvingHistoryModal } from "./components/CalvingHistoryModal";
+import { InseminationHistoryModal } from "./components/InseminationHistoryModal";
 import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 
@@ -12,7 +14,6 @@ export function App() {
     const saved = localStorage.getItem("@gestar_cows");
     if (saved) {
       const parsedCows: Cow[] = JSON.parse(saved);
-      // Recalcula dinamicamente os campos com base na data de hoje ao carregar do localStorage[cite: 6]
       return parsedCows.map((cow) => {
         const calculated = calculateReproductionFields({
           currentCalvingDate: cow.currentCalvingDate,
@@ -28,24 +29,29 @@ export function App() {
         };
       });
     }
-    return INITIAL_COWS; //[cite: 6]
+    return INITIAL_COWS;
   });
 
-  const [isModalOpen, setIsModalOpen] = useState(false); //[cite: 6]
-  const [cowToEdit, setCowToEdit] = useState<Cow | null>(null); //[cite: 6]
-  const [isInsemModalOpen, setIsInsemModalOpen] = useState(false); //[cite: 6]
-  const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null); //[cite: 6]
-  const [isCalvingModalOpen, setIsCalvingModalOpen] = useState(false); //[cite: 6]
-  const [cowToCalve, setCowToCalve] = useState<Cow | null>(null); //[cite: 6]
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [cowToEdit, setCowToEdit] = useState<Cow | null>(null);
+  const [isInsemModalOpen, setIsInsemModalOpen] = useState(false);
+  const [cowToInseminate, setCowToInseminate] = useState<Cow | null>(null);
+  const [isCalvingModalOpen, setIsCalvingModalOpen] = useState(false);
+  const [cowToCalve, setCowToCalve] = useState<Cow | null>(null);
+  
+  const [isCalvingHistoryModalOpen, setIsCalvingHistoryModalOpen] = useState(false);
+  const [cowForCalvingHistory, setCowForCalvingHistory] = useState<Cow | null>(null);
+
+  const [isInseminationHistoryModalOpen, setIsInseminationHistoryModalOpen] = useState(false);
+  const [cowForInseminationHistory, setCowForInseminationHistory] = useState<Cow | null>(null);
 
   useEffect(() => {
-    localStorage.setItem("@gestar_cows", JSON.stringify(cows)); //[cite: 6]
+    localStorage.setItem("@gestar_cows", JSON.stringify(cows));
   }, [cows]);
 
   const handleSaveCow = (cowData: any) => {
     const trimmedTag = (cowData.numberTag || "").trim();
 
-    // Validação: Verifica se já existe outra vaca com o mesmo número de brinco[cite: 6]
     if (trimmedTag) {
       const duplicateCow = cows.find(
         (c) => c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() && (!cowToEdit || c.id !== cowToEdit.id)
@@ -53,7 +59,7 @@ export function App() {
 
       if (duplicateCow) {
         alert(`Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`);
-        return; // Interrompe o salvamento[cite: 6]
+        return;
       }
     }
 
@@ -77,7 +83,7 @@ export function App() {
       setCowToEdit(null);
     } else {
       const nextOrder =
-        cows.length > 0 ? Math.max(...cows.map((c) => c.order)) + 1 : 1; //[cite: 6]
+        cows.length > 0 ? Math.max(...cows.map((c) => c.order)) + 1 : 1;
       const newCow: Cow = {
         ...cowData,
         id: Date.now(),
@@ -96,7 +102,7 @@ export function App() {
         inseminationHistory: [],
         calvingHistory: [],
       };
-      setCows([...cows, newCow]); //[cite: 6]
+      setCows([...cows, newCow]);
     }
   };
 
@@ -130,6 +136,45 @@ export function App() {
               previousState,
               ...(cow.calvingHistory || []),
             ],
+          };
+        }
+        return cow;
+      })
+    );
+  };
+
+ const handleUpdateCalvingHistory = (cowId: number, updatedDates: string[]) => {
+    const sortedDates = [...updatedDates].sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    const newCurrentCalving = sortedDates[0] || "";
+    const newPreviousCalving = sortedDates[1] || "";
+
+    setCows(
+      cows.map((cow) => {
+        if (cow.id === cowId) {
+          const restructuredHistory = [];
+          for (let i = 0; i < sortedDates.length - 1; i++) {
+            restructuredHistory.push({
+              currentCalvingDate: sortedDates[i],
+              previousCalvingDate: sortedDates[i + 1],
+            });
+          }
+
+          const calculated = calculateReproductionFields({
+            currentCalvingDate: newCurrentCalving,
+            previousCalvingDate: newPreviousCalving,
+            lastInseminationDate: cow.lastInseminationDate,
+            firstInseminationDate: cow.firstInseminationDate,
+            firstHeatDate: cow.firstHeatDate,
+            inseminationNumber: cow.inseminationNumber,
+          });
+
+          return {
+            ...cow,
+            ...calculated,
+            currentCalvingDate: newCurrentCalving,
+            previousCalvingDate: newPreviousCalving,
+            calvingHistory: restructuredHistory,
           };
         }
         return cow;
@@ -197,48 +242,35 @@ export function App() {
     );
   };
 
-  const handleUndoInsemination = (cowId: number) => {
+  const handleUpdateInseminationHistory = (cowId: number, updatedHistory: any[]) => {
+    const sorted = [...updatedHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const latestInsemination = sorted[0];
+
+    const newInsemNumber = sorted.length;
+
     setCows(
       cows.map((cow) => {
-        if (
-          cow.id === cowId &&
-          cow.inseminationHistory &&
-          cow.inseminationHistory.length > 0
-        ) {
-          const lastState = cow.inseminationHistory[0];
-          const remainingHistory = cow.inseminationHistory.slice(1);
-
-          let revertedCategoryGS = cow.categoryGS;
-          if (lastState.inseminationNumber === 0) revertedCategoryGS = "Nulípara";
-          else if (lastState.inseminationNumber === 1) revertedCategoryGS = "Primípara";
-          else if (lastState.inseminationNumber > 1) revertedCategoryGS = "Multípara";
-
-          const targetFirstInsem = lastState.firstInseminationDate ?? "";
-          const targetFirstHeat = lastState.firstHeatDate ?? "";
-
+        if (cow.id === cowId) {
           const calculated = calculateReproductionFields({
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
-            lastInseminationDate: lastState.lastInseminationDate || "",
-            firstInseminationDate: targetFirstInsem,
-            firstHeatDate: targetFirstHeat,
-            inseminationNumber: lastState.inseminationNumber,
+            lastInseminationDate: latestInsemination ? latestInsemination.date : '',
+            firstInseminationDate: cow.firstInseminationDate,
+            firstHeatDate: cow.firstHeatDate,
+            inseminationNumber: newInsemNumber,
           });
 
           return {
             ...cow,
             ...calculated,
-            lastInseminationDate: lastState.lastInseminationDate || "",
-            bull: lastState.bull || "",
-            inseminationNumber: lastState.inseminationNumber,
-            categoryGS: revertedCategoryGS,
-            firstInseminationDate: targetFirstInsem,
-            firstHeatDate: targetFirstHeat,
-            inseminationHistory: remainingHistory,
+            lastInseminationDate: latestInsemination ? latestInsemination.date : '',
+            bull: latestInsemination ? latestInsemination.bull : '',
+            inseminationNumber: newInsemNumber,
+            inseminationHistory: sorted,
           };
         }
         return cow;
-      }),
+      })
     );
   };
 
@@ -262,9 +294,16 @@ export function App() {
     setCowToCalve(cow);
     setIsCalvingModalOpen(true);
   };
+  const handleOpenCalvingHistoryModal = (cow: Cow) => {
+    setCowForCalvingHistory(cow);
+    setIsCalvingHistoryModalOpen(true);
+  };
+  const handleOpenInseminationHistoryModal = (cow: Cow) => {
+    setCowForInseminationHistory(cow);
+    setIsInseminationHistoryModalOpen(true);
+  };
 
   return (
-    // Alterado de max-w-7xl mx-auto para w-full, ocupando 100% da tela do computador
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
         <header className="bg-white shadow rounded-lg p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-emerald-600 w-full">
@@ -288,7 +327,8 @@ export function App() {
             onDelete={handleDeleteCow}
             onInsemination={handleOpenInseminationModal}
             onCalving={handleOpenCalvingModal}
-            onUndoInsemination={handleUndoInsemination}
+            onOpenCalvingHistory={handleOpenCalvingHistoryModal}
+            onOpenInseminationHistory={handleOpenInseminationHistoryModal}
           />
         </main>
 
@@ -310,6 +350,18 @@ export function App() {
           onClose={() => setIsCalvingModalOpen(false)}
           onSave={handleSaveCalving}
           cow={cowToCalve}
+        />
+        <CalvingHistoryModal
+          isOpen={isCalvingHistoryModalOpen}
+          onClose={() => setIsCalvingHistoryModalOpen(false)}
+          cow={cowForCalvingHistory}
+          onUpdateHistory={handleUpdateCalvingHistory}
+        />
+        <InseminationHistoryModal
+          isOpen={isInseminationHistoryModalOpen}
+          onClose={() => setIsInseminationHistoryModalOpen(false)}
+          cow={cowForInseminationHistory}
+          onUpdateHistory={handleUpdateInseminationHistory}
         />
       </div>
     </div>
