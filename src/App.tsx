@@ -333,10 +333,15 @@ export function App() {
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
         {/* Cabeçalho limpo focado apenas no título do sistema */}
-        <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full">
-          <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
+        <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full flex items-center gap-4">
+          <img
+            src={`${import.meta.env.BASE_URL}images/logo-gestar.png`}
+            alt="Logo Gestar"
+            className="h-12 w-auto object-contain"
+          />
+          {/* <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
             Controle Reprodutivo
-          </h1>
+          </h1> */}
         </header>
 
         <main className="w-full space-y-6">
@@ -353,8 +358,12 @@ export function App() {
           <div className="bg-white rounded-lg shadow p-5 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
               <div>
-                <h2 className="text-lg font-bold text-gray-800">Gerenciamento do Rebanho</h2>
-                <p className="text-xs text-gray-500">Lista completa de animais e histórico reprodutivo</p>
+                <h2 className="text-lg font-bold text-gray-800">
+                  Gerenciamento do Rebanho
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Lista completa de animais e histórico reprodutivo
+                </p>
               </div>
               <button
                 onClick={handleOpenCreateModal}
