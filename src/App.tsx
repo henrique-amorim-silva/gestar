@@ -6,11 +6,12 @@ import { InseminationModal } from "./components/InseminationModal";
 import { CalvingModal } from "./components/CalvingModal";
 import { CalvingHistoryModal } from "./components/CalvingHistoryModal";
 import { InseminationHistoryModal } from "./components/InseminationHistoryModal";
-import { DashboardKPIs } from "./components/DashboardKPIs"; // <--- Importação dos KPIs
+import { DashboardKPIs } from "./components/DashboardKPIs";
 import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 import { DashboardAlerts } from "./components/DashboardAlerts";
 import { ReproductionGauges } from "./components/ReproductionGauges";
+import { GeneralSituationDashboard } from "./components/GeneralSituationDashboard"; // <--- Importação do novo dashboard
 
 export function App() {
   const [cows, setCows] = useState<Cow[]>(() => {
@@ -332,17 +333,17 @@ export function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
-        {/* Cabeçalho limpo focado apenas no título do sistema */}
+        {/* Cabeçalho com logo e título */}
         <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full flex items-center gap-4">
           <img
             src={`${import.meta.env.BASE_URL}images/logo-gestar.png`}
             alt="Logo Gestar"
             className="h-12 w-auto object-contain"
           />
-          {/* <h1 className="text-2xl font-bold text-gray-800 uppercase tracking-wide">
-            Controle Reprodutivo
-          </h1> */}
         </header>
+
+        {/* Dashboard de Situação Geral logo após o Header */}
+        <GeneralSituationDashboard cows={cows} />
 
         <main className="w-full space-y-6">
           {/* Bloco de KPIs / Indicadores Reprodutivos */}
