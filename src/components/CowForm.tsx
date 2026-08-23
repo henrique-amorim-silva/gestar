@@ -15,7 +15,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     numberTag: '',
     name: '',
     situation: 'L' as string,
-    categoryGS: '',
+    categoryGS: 'Nulípara',
     offspringCount: 0,
     gender: 'F' as string,
     currentCalvingDate: '',
@@ -25,6 +25,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     lastInseminationDate: '',
     lastHeatDate: '',
     inseminationNumber: 0,
+    heatsCount: 0,
     bull: '',
     diagnosisStatus: 'DG+' as string,
     dryingDate: '',
@@ -39,13 +40,21 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
 
   const [error, setError] = useState('');
 
+  // Função auxiliar para determinar o CS com base nos cios / nº de IA
+  const determineCS = (count: number) => {
+    if (count === 0) return 'Nulípara';
+    if (count === 1) return 'Primípara';
+    return 'Multípara';
+  };
+
   useEffect(() => {
     if (cowToEdit) {
+      const currentCios = cowToEdit.heatsCount ?? cowToEdit.inseminationNumber ?? 0;
       setFormData({
         numberTag: cowToEdit.numberTag || '',
         name: cowToEdit.name || '',
         situation: cowToEdit.situation || 'L',
-        categoryGS: cowToEdit.categoryGS || '',
+        categoryGS: cowToEdit.categoryGS || determineCS(currentCios),
         offspringCount: cowToEdit.offspringCount || 0,
         gender: cowToEdit.gender || 'F',
         currentCalvingDate: cowToEdit.currentCalvingDate || '',
@@ -55,6 +64,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         lastInseminationDate: cowToEdit.lastInseminationDate || '',
         lastHeatDate: cowToEdit.lastHeatDate || '',
         inseminationNumber: cowToEdit.inseminationNumber || 0,
+        heatsCount: cowToEdit.heatsCount ?? cowToEdit.inseminationNumber ?? 0,
         bull: cowToEdit.bull || '',
         diagnosisStatus: cowToEdit.diagnosisStatus || 'DG+',
         dryingDate: cowToEdit.dryingDate || '',
@@ -81,6 +91,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         lastInseminationDate: '',
         lastHeatDate: '',
         inseminationNumber: 0,
+        heatsCount: 0,
         bull: '',
         diagnosisStatus: 'DG+',
         dryingDate: '',
@@ -96,15 +107,12 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     setError('');
   }, [cowToEdit, isOpen]);
 
-  const handleInseminationChange = (value: number) => {
-    let autoCategory = formData.categoryGS;
-    if (value === 0) autoCategory = 'Nulípara';
-    else if (value === 1) autoCategory = 'Primípara';
-    else if (value > 1) autoCategory = 'Multípara';
-
+  const handleCiosChange = (value: number) => {
+    const autoCategory = determineCS(value);
     setFormData({
       ...formData,
       inseminationNumber: value,
+      heatsCount: value,
       categoryGS: autoCategory
     });
   };
@@ -138,7 +146,8 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
 
     onSave({ 
       ...formData, 
-      ...calculated 
+      ...calculated,
+      categoryGS: determineCS(formData.heatsCount)
     });
     onClose();
   };
@@ -182,11 +191,15 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Categoria (GS)</label>
-            <select className="w-full p-2 border rounded" value={formData.categoryGS} onChange={e => setFormData({...formData, categoryGS: e.target.value})}>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Categoria (CS)</label>
+            <select 
+              className="w-full p-2 border rounded bg-gray-100 cursor-not-allowed font-semibold text-emerald-800" 
+              value={formData.categoryGS} 
+              disabled
+            >
               <option value="Nulípara">Nulípara (0 cios)</option>
               <option value="Primípara">Primípara (1 cio)</option>
-              <option value="Multípara">Multípara (+ de 1 cio)</option>
+              <option value="Multípara">Multípara (2+ cios)</option>
             </select>
           </div>
           <div>
@@ -237,15 +250,15 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs / Cios</label>
-            <input type="number" className="w-full p-2 border rounded" value={formData.inseminationNumber} onChange={e => handleInseminationChange(Number(e.target.value))} />
+            <input type="number" className="w-full p-2 border rounded" value={formData.heatsCount} onChange={e => handleCiosChange(Number(e.target.value))} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Touro</label>
-            <input type="text" className="w-full p-2 border rounded" value={formData.bull} onChange={e => setFormData({...formData, bull: e.target.value})} placeholder="Ex: JACK DANIELS" />
+            <label className="block text-xs font-semibold text-gray-600 mbt-1">Touro</label>
+            <input type="text" className="w-full p-2 border rounded mt-1" value={formData.bull} onChange={e => setFormData({...formData, bull: e.target.value})} placeholder="Ex: JACK DANIELS" />
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Status DG</label>
-            <select className="w-full p-2 border rounded" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value})}>
+            <select className="w-full p-2 border rounded mt-1" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value})}>
               <option value="">Nenhum</option>
               <option value="DG+">DG+</option>
               <option value="DG-">DG-</option>

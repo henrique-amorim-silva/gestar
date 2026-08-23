@@ -21,9 +21,17 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
     return diff !== null && diff >= -5 && diff <= 30;
   });
 
-  // 2. Vacas com Inseminação recente aguardando confirmação
+  // 2. Vacas com IA (sistema ou legado) e que estão com DG- ou Pendente (vazio)
   const pendingDGs = cows.filter(cow => {
-    return cow.lastInseminationDate && cow.diagnosisStatus !== 'DG+';
+    // Verifica se a vaca passou por IA
+    const hasInsemination = Boolean(cow.lastInseminationDate) || (cow.inseminationHistory && cow.inseminationHistory.length > 0);
+    if (!hasInsemination) return false;
+
+    // Padroniza e checa o status de DG
+    const dgStatus = (cow.diagnosisStatus || '').trim().toUpperCase();
+
+    // Deve aparecer se estiver vazia (DG-) ou se o diagnóstico estiver pendente (vazio)
+    return dgStatus === 'DG-' || dgStatus === '';
   });
 
   return (

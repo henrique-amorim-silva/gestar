@@ -1,9 +1,12 @@
 export interface InseminationRecord {
+  id?: string; // Adicionado para identificar unicamente cada lançamento
+  date?: string;
   lastInseminationDate: string;
   bull: string;
   inseminationNumber: number;
   firstInseminationDate?: string;
   firstHeatDate?: string;
+  successStatus?: string;
 }
 
 export interface CalvingRecord {

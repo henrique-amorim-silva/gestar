@@ -14,39 +14,31 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const [editDate, setEditDate] = useState('');
   const [editBull, setEditBull] = useState('');
 
-  // Função ultra-robusta para encontrar a data
   const getItemDate = (item: any) => {
     if (!item) return '';
-    const directMatch = item.lastInseminationDate || item.date || item.inseminationDate || item.dia || item.data;
-    if (directMatch) return directMatch;
-
-    const values = Object.values(item);
-    for (const val of values) {
-      if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
-        return val;
-      }
-    }
+    const dateVal = item.date || item.lastInseminationDate || item.inseminationDate || item.data || item.dia;
+    if (dateVal && typeof dateVal === 'string') return dateVal.split('T')[0];
     return '';
   };
 
-  // Função ultra-robusta para encontrar o nome do touro
   const getItemBull = (item: any, fallbackCowBull?: string) => {
     if (!item) return fallbackCowBull || '-';
     
-    // Tenta todas as chaves possíveis
+    const invalidValues = ['Prenhe / Sucesso', 'Vazia / Falha', 'Pendente', 'DG+', 'DG-', 'Pendente / Sem Diagnóstico'];
+    
     const directMatch = item.bull || item.touro || item.sire || item.reprodutor || item.bullName;
-    if (directMatch) return directMatch;
-
-    // Se não achou nas chaves diretas, percorre todas as propriedades do objeto procurando por uma string válida que não seja data
-    const values = Object.values(item);
-    for (const val of values) {
-      if (typeof val === 'string' && val.trim() !== '' && !/^\d{4}-\d{2}-\d{2}/.test(val) && !/^\d+$/.test(val)) {
-        return val;
-      }
+    if (directMatch && !invalidValues.includes(directMatch)) {
+      return directMatch;
     }
 
-    // Se ainda assim não achar, usa o touro atual da vaca como último recurso
     return fallbackCowBull || '-';
+  };
+
+  const getItemSuccess = (item: any) => {
+    if (item.successStatus !== undefined) return item.successStatus;
+    if (item.isSuccessful === true) return 'Prenhe / Sucesso';
+    if (item.isSuccessful === false) return 'Vazia / Falha';
+    return 'Pendente';
   };
 
   useEffect(() => {
@@ -54,16 +46,29 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
 
     let insHistory = cow.inseminationHistory ? [...cow.inseminationHistory] : [];
     
-    // Se o histórico estiver vazio mas a vaca tiver uma IA atual, insere preenchendo o registro
     if (insHistory.length === 0 && cow.lastInseminationDate) {
       insHistory.push({
+        id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+        date: cow.lastInseminationDate,
         lastInseminationDate: cow.lastInseminationDate,
         bull: cow.bull || '',
         inseminationNumber: cow.inseminationNumber || 1,
+        successStatus: 'Pendente',
+      });
+    } else {
+      insHistory = insHistory.map((item, idx) => {
+        const resolvedDate = getItemDate(item) || cow.lastInseminationDate || '';
+        return {
+          ...item,
+          id: item.id || `ins-${idx}-${Date.now()}`,
+          date: resolvedDate,
+          lastInseminationDate: resolvedDate,
+          bull: getItemBull(item, cow.bull),
+          successStatus: getItemSuccess(item)
+        };
       });
     }
 
-    // Ordena do mais recente para o mais antigo
     insHistory.sort((a, b) => {
       const dateA = new Date(getItemDate(a)).getTime() || 0;
       const dateB = new Date(getItemDate(b)).getTime() || 0;
@@ -76,12 +81,57 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
 
   if (!isOpen || !cow) return null;
 
+  const saveAndSync = (updatedHistory: any[]) => {
+    setHistory(updatedHistory);
+
+    if (updatedHistory.length > 0) {
+      const latest = updatedHistory[0];
+      const latestDate = getItemDate(latest);
+      cow.lastInseminationDate = latestDate;
+      cow.bull = getItemBull(latest, cow.bull);
+    } else {
+      cow.lastInseminationDate = '';
+      cow.bull = '';
+      cow.inseminationNumber = 0;
+      
+      if ('firstInseminationDate' in cow) (cow as any).firstInseminationDate = '';
+      if ('firstHeatDate' in cow) (cow as any).firstHeatDate = '';
+      if ('cioDate' in cow) (cow as any).cioDate = '';
+    }
+
+    onUpdateHistory(cow.id, updatedHistory);
+  };
+
   const handleDelete = (indexToDelete: number) => {
     if (window.confirm('Tem certeza que deseja excluir este registro de Inseminação?')) {
       const updated = history.filter((_, i) => i !== indexToDelete);
-      setHistory(updated);
-      onUpdateHistory(cow.id, updated);
+      saveAndSync(updated);
     }
+  };
+
+  const handleToggleStatus = (indexToToggle: number) => {
+    const updated = history.map((item, i) => {
+      if (i === indexToToggle) {
+        const currentFullStatus = getItemSuccess(item);
+        
+        let nextFullStatus = 'Pendente';
+        if (currentFullStatus === 'Pendente' || currentFullStatus === 'Pendente / Sem Diagnóstico') {
+          nextFullStatus = 'Prenhe / Sucesso';
+        } else if (currentFullStatus === 'Prenhe / Sucesso') {
+          nextFullStatus = 'Vazia / Falha';
+        } else {
+          nextFullStatus = 'Pendente';
+        }
+
+        return {
+          ...item,
+          successStatus: nextFullStatus
+        };
+      }
+      return item;
+    });
+
+    saveAndSync(updated);
   };
 
   const handleStartEdit = (index: number, item: any) => {
@@ -93,19 +143,23 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const handleSaveEdit = (indexToEdit: number) => {
     const updated = history.map((item, i) => {
       if (i === indexToEdit) {
-        return { ...item, lastInseminationDate: editDate, date: editDate, bull: editBull };
+        return { 
+          ...item, 
+          date: editDate,
+          lastInseminationDate: editDate, 
+          bull: editBull
+        };
       }
       return item;
     });
     
-    setHistory(updated);
-    onUpdateHistory(cow.id, updated);
+    saveAndSync(updated);
     setEditingIndex(null);
   };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-lg p-6 w-full max-w-lg space-y-4 shadow-xl">
+      <div className="bg-white rounded-lg p-6 w-full max-w-xl space-y-4 shadow-xl">
         <div className="flex justify-between items-center border-b pb-3">
           <h2 className="text-lg font-bold text-gray-800">
             Histórico de Inseminações (IA) — <span className="text-emerald-700">{cow.name}</span>
@@ -124,13 +178,25 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
             {history.map((item, index) => {
               const currentDate = getItemDate(item);
               const currentBull = getItemBull(item, cow.bull);
+              const fullStatus = getItemSuccess(item);
+              
+              let displayStatus = 'Pendente';
+              let badgeColor = 'bg-amber-100 text-amber-800 hover:bg-amber-200';
+              
+              if (fullStatus === 'Prenhe / Sucesso') {
+                displayStatus = 'DG+';
+                badgeColor = 'bg-green-100 text-green-800 hover:bg-green-200';
+              } else if (fullStatus === 'Vazia / Falha') {
+                displayStatus = 'DG-';
+                badgeColor = 'bg-red-100 text-red-800 hover:bg-red-200';
+              }
               
               return (
-                <div key={index} className="border rounded p-2.5 bg-gray-50 flex justify-between items-center text-xs">
-                  <div className="flex items-center gap-3">
+                <div key={item.id || index} className="border rounded p-2.5 bg-gray-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 text-xs">
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
                     <span className="font-bold text-gray-400">#{history.length - index}</span>
                     {editingIndex === index ? (
-                      <div className="flex gap-2 items-center">
+                      <div className="flex flex-wrap gap-2 items-center">
                         <input
                           type="date"
                           value={editDate}
@@ -142,20 +208,29 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
                           value={editBull}
                           onChange={(e) => setEditBull(e.target.value)}
                           placeholder="Touro"
-                          className="p-1 border rounded text-xs w-28"
+                          className="p-1 border rounded text-xs w-24"
                         />
                       </div>
                     ) : (
-                      <div>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                         <span className="font-semibold text-gray-800">
                           Data: {currentDate ? new Date(currentDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
                         </span>
-                        <span className="ml-3 text-indigo-700 font-medium">Touro: {currentBull}</span>
+                        <span className="text-indigo-700 font-medium">Touro: {currentBull}</span>
+                        
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(index)}
+                          title="Clique para alternar o status (Pendente ➔ DG+ ➔ DG-)"
+                          className={`px-2 py-0.5 rounded font-bold text-[10px] transition-colors cursor-pointer shadow-sm ${badgeColor}`}
+                        >
+                          {displayStatus}
+                        </button>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 self-end sm:self-center">
                     {editingIndex === index ? (
                       <>
                         <button onClick={() => handleSaveEdit(index)} className="text-emerald-700 font-bold hover:underline">Salvar</button>

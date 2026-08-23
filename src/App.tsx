@@ -11,25 +11,55 @@ import type { Cow } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 import { DashboardAlerts } from "./components/DashboardAlerts";
 import { ReproductionGauges } from "./components/ReproductionGauges";
-import { GeneralSituationDashboard } from "./components/GeneralSituationDashboard"; // <--- Importação do novo dashboard
+import { GeneralSituationDashboard } from "./components/GeneralSituationDashboard";
 
 export function App() {
+  const getCategoryCS = (iosCount: number) => {
+    if (iosCount === 0) return "Nulípara";
+    if (iosCount === 1) return "Primípara";
+    return "Multípara";
+  };
+
+  // Função auxiliar para recalcular o número de cios efetivos com base nas IAs sem sucesso anterior ou até a bem-sucedida
+  const calculateEffectiveInsemNumber = (
+    history: any[],
+    currentInsemNum: number,
+  ) => {
+    if (!history || history.length === 0) return currentInsemNum;
+
+    // Conta quantas tentativas foram feitas no período ativo atual (ou conta sequencial até uma com sucesso)
+    let count = 0;
+    for (const item of history) {
+      count++;
+      if (item.successStatus === "Prenhe / Sucesso") {
+        break; // Se achou uma bem-sucedida, o ciclo de cios deste período fecha nela
+      }
+    }
+    return count > 0 ? count : currentInsemNum || 1;
+  };
+
   const [cows, setCows] = useState<Cow[]>(() => {
     const saved = localStorage.getItem("@gestar_cows");
     if (saved) {
       const parsedCows: Cow[] = JSON.parse(saved);
       return parsedCows.map((cow) => {
+        const effectiveInsemNum = calculateEffectiveInsemNumber(
+          cow.inseminationHistory || [],
+          cow.inseminationNumber,
+        );
         const calculated = calculateReproductionFields({
           currentCalvingDate: cow.currentCalvingDate,
           previousCalvingDate: cow.previousCalvingDate,
           lastInseminationDate: cow.lastInseminationDate,
           firstInseminationDate: cow.firstInseminationDate,
           firstHeatDate: cow.firstHeatDate,
-          inseminationNumber: cow.inseminationNumber,
+          inseminationNumber: effectiveInsemNum,
         });
         return {
           ...cow,
           ...calculated,
+          inseminationNumber: effectiveInsemNum,
+          categoryGS: getCategoryCS(effectiveInsemNum),
         };
       });
     }
@@ -76,6 +106,9 @@ export function App() {
       }
     }
 
+    const iosCount = cowData.inseminationNumber ?? 0;
+    const computedCategory = getCategoryCS(iosCount);
+
     if (cowToEdit) {
       const updatedCow: Cow = {
         ...cowToEdit,
@@ -87,7 +120,7 @@ export function App() {
         lastInseminationDate: cowData.lastInseminationDate || "",
         lastHeatDate: cowData.lastHeatDate || "",
         numberTag: cowData.numberTag || "",
-        categoryGS: cowData.categoryGS || "",
+        categoryGS: computedCategory,
         bull: cowData.bull || "",
         dryingDate: cowData.dryingDate || "",
         observations: cowData.observations || "",
@@ -102,7 +135,7 @@ export function App() {
         id: Date.now(),
         order: nextOrder,
         numberTag: cowData.numberTag || "",
-        categoryGS: cowData.categoryGS || "",
+        categoryGS: computedCategory,
         firstHeatDate: cowData.firstHeatDate || "",
         firstInseminationDate: cowData.firstInseminationDate || "",
         previousCalvingDate: cowData.previousCalvingDate || "",
@@ -198,33 +231,34 @@ export function App() {
     );
   };
 
-  const handleSaveInsemination = (
+ const handleSaveInsemination = (
     cowId: number,
     insemData: {
       lastInseminationDate: string;
       bull: string;
       incrementInseminationNumber: boolean;
+      successStatus: string;
     },
   ) => {
     setCows(
       cows.map((cow) => {
         if (cow.id === cowId) {
-          const previousState = {
-            lastInseminationDate: cow.lastInseminationDate,
-            bull: cow.bull,
-            inseminationNumber: cow.inseminationNumber,
-            firstInseminationDate: cow.firstInseminationDate,
-            firstHeatDate: cow.firstHeatDate,
+          // Cria o registro exato da inseminação que está sendo adicionada agora,
+          // preservando especificamente a data e o touro informados neste modal.
+          const newInseminationRecord = {
+            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+            date: insemData.lastInseminationDate,
+            lastInseminationDate: insemData.lastInseminationDate,
+            bull: insemData.bull,
+            inseminationNumber: (cow.inseminationNumber || 0) + 1,
+            successStatus: insemData.successStatus || 'Pendente',
           };
 
           const newInsemNumber = insemData.incrementInseminationNumber
-            ? cow.inseminationNumber + 1
-            : cow.inseminationNumber || 1;
+            ? (cow.inseminationNumber || 0) + 1
+            : (cow.inseminationNumber || 1);
 
-          let newCategoryGS = cow.categoryGS;
-          if (newInsemNumber === 0) newCategoryGS = "Nulípara";
-          else if (newInsemNumber === 1) newCategoryGS = "Primípara";
-          else if (newInsemNumber > 1) newCategoryGS = "Multípara";
+          const newCategoryGS = getCategoryCS(newInsemNumber);
 
           const firstInseminationDate =
             cow.firstInseminationDate || insemData.lastInseminationDate;
@@ -250,7 +284,7 @@ export function App() {
             firstInseminationDate,
             firstHeatDate,
             inseminationHistory: [
-              previousState,
+              newInseminationRecord,
               ...(cow.inseminationHistory || []),
             ],
           };
@@ -265,11 +299,17 @@ export function App() {
     updatedHistory: any[],
   ) => {
     const sorted = [...updatedHistory].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+      (a, b) =>
+        new Date(b.date || b.lastInseminationDate).getTime() -
+        new Date(a.date || a.lastInseminationDate).getTime(),
     );
     const latestInsemination = sorted[0];
 
-    const newInsemNumber = sorted.length;
+    const effectiveInsemNumber = calculateEffectiveInsemNumber(
+      sorted,
+      sorted.length,
+    );
+    const newCategoryGS = getCategoryCS(effectiveInsemNumber);
 
     setCows(
       cows.map((cow) => {
@@ -278,21 +318,24 @@ export function App() {
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
             lastInseminationDate: latestInsemination
-              ? latestInsemination.date
+              ? latestInsemination.lastInseminationDate ||
+                latestInsemination.date
               : "",
             firstInseminationDate: cow.firstInseminationDate,
             firstHeatDate: cow.firstHeatDate,
-            inseminationNumber: newInsemNumber,
+            inseminationNumber: effectiveInsemNumber,
           });
 
           return {
             ...cow,
             ...calculated,
             lastInseminationDate: latestInsemination
-              ? latestInsemination.date
+              ? latestInsemination.lastInseminationDate ||
+                latestInsemination.date
               : "",
             bull: latestInsemination ? latestInsemination.bull : "",
-            inseminationNumber: newInsemNumber,
+            inseminationNumber: effectiveInsemNumber,
+            categoryGS: newCategoryGS,
             inseminationHistory: sorted,
           };
         }
@@ -333,7 +376,6 @@ export function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
-        {/* Cabeçalho com logo e título */}
         <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full flex items-center gap-4">
           <img
             src={`${import.meta.env.BASE_URL}images/logo-gestar.png`}
@@ -342,20 +384,14 @@ export function App() {
           />
         </header>
 
-        {/* Dashboard de Situação Geral logo após o Header */}
         <GeneralSituationDashboard cows={cows} />
 
         <main className="w-full space-y-6">
-          {/* Bloco de KPIs / Indicadores Reprodutivos */}
           <DashboardKPIs cows={cows} />
-
-          {/* Gráficos de Medidores */}
           <ReproductionGauges cows={cows} />
-
-          {/* Bloco de Alertas e Ações Imediatas */}
           <DashboardAlerts cows={cows} />
 
-          {/* Seção da Tabela com o Botão de Nova Vaca Integrado Logo Acima */}
+          {/* Seção única contendo o título do rebanho, o botão de nova vaca e a tabela */}
           <div className="bg-white rounded-lg shadow p-5 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
               <div>
@@ -374,7 +410,6 @@ export function App() {
               </button>
             </div>
 
-            {/* Tabela Principal */}
             <CowTable
               cows={cows}
               onEdit={handleEditCow}

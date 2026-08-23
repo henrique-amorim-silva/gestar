@@ -4,7 +4,7 @@ import type { Cow } from '../types/cow';
 interface InseminationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cowId: number, insemData: { lastInseminationDate: string; bull: string; incrementInseminationNumber: boolean }) => void;
+  onSave: (cowId: number, insemData: { lastInseminationDate: string; bull: string; incrementInseminationNumber: boolean; successStatus: string }) => void;
   cow: Cow | null;
 }
 
@@ -12,26 +12,51 @@ export const InseminationModal: React.FC<InseminationModalProps> = ({ isOpen, on
   const [lastInseminationDate, setLastInseminationDate] = useState(new Date().toISOString().split('T')[0]);
   const [bull, setBull] = useState('');
   const [incrementInseminationNumber, setIncrementInseminationNumber] = useState(true);
+  const [successStatus, setSuccessStatus] = useState('Pendente');
 
   useEffect(() => {
     if (cow) {
       setBull(cow.bull || '');
       setLastInseminationDate(new Date().toISOString().split('T')[0]);
       setIncrementInseminationNumber(true);
+      setSuccessStatus('Pendente'); // Padrão inicial
     }
   }, [cow, isOpen]);
 
   if (!isOpen || !cow) return null;
+
+  // Ciclo rápido de status ao clicar no botão do modal: Pendente -> DG+ -> DG- -> Pendente
+  const handleToggleStatus = () => {
+    if (successStatus === 'Pendente' || successStatus === 'Pendente / Sem Diagnóstico') {
+      setSuccessStatus('Prenhe / Sucesso'); // vira DG+
+    } else if (successStatus === 'Prenhe / Sucesso') {
+      setSuccessStatus('Vazia / Falha'); // vira DG-
+    } else {
+      setSuccessStatus('Pendente'); // volta para Pendente
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(cow.id, {
       lastInseminationDate,
       bull: bull.toUpperCase(),
-      incrementInseminationNumber
+      incrementInseminationNumber,
+      successStatus
     });
     onClose();
   };
+
+  // Aparência visual do botão de status no modal
+  let displayStatus = 'Pendente';
+  let badgeColor = 'bg-amber-100 text-amber-800 hover:bg-amber-200 border-amber-300';
+  if (successStatus === 'Prenhe / Sucesso') {
+    displayStatus = 'DG+';
+    badgeColor = 'bg-green-100 text-green-800 hover:bg-green-200 border-green-300';
+  } else if (successStatus === 'Vazia / Falha') {
+    displayStatus = 'DG-';
+    badgeColor = 'bg-red-100 text-red-800 hover:bg-red-200 border-red-300';
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -65,6 +90,24 @@ export const InseminationModal: React.FC<InseminationModalProps> = ({ isOpen, on
               placeholder="Ex: JACK DANIELS"
               required
             />
+          </div>
+
+          {/* Campo de Status / Diagnóstico para suportar dados legados ou lançamentos diretos */}
+          <div>
+            <label className="block font-medium text-gray-700 mb-1">Situação / Diagnóstico (DG)</label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleToggleStatus}
+                title="Clique para alternar a situação (Pendente ➔ DG+ ➔ DG-)"
+                className={`px-3 py-1.5 rounded font-bold text-xs border transition-colors cursor-pointer shadow-sm ${badgeColor}`}
+              >
+                {displayStatus}
+              </button>
+              <span className="text-xs text-gray-500">
+                (Clique para alternar entre Pendente, DG+ e DG-)
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 pt-2">
