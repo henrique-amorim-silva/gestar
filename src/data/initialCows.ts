@@ -29,7 +29,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-03-13", bull: "JACK DANIELS", inseminationNumber: 1 }],
-    calvingHistory: [{ currentCalvingDate: "2025-03-11", previousCalvingDate: "2025-05-09" }]
+    calvingHistory: [{ currentCalvingDate: "2025-03-11", previousCalvingDate: "2025-05-09" }],
+    farmID: ''
   },
   {
     id: 2,
@@ -59,7 +60,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-03-16", bull: "JACK DANIELS", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2025-12-18", previousCalvingDate: "2025-01-07" }]
+    calvingHistory: [{ currentCalvingDate: "2025-12-18", previousCalvingDate: "2025-01-07" }],
+    farmID: ''
   },
   {
     id: 3,
@@ -89,7 +91,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-04-11", bull: "JACK DANIELS", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2025-11-25", previousCalvingDate: "2024-11-09" }]
+    calvingHistory: [{ currentCalvingDate: "2025-11-25", previousCalvingDate: "2024-11-09" }],
+    farmID: ''
   },
   {
     id: 4,
@@ -119,7 +122,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-05-06", bull: "BOI", inseminationNumber: 5 }],
-    calvingHistory: [{ currentCalvingDate: "2025-06-14", previousCalvingDate: "2024-05-25" }]
+    calvingHistory: [{ currentCalvingDate: "2025-06-14", previousCalvingDate: "2024-05-25" }],
+    farmID: ''
   },
   {
     id: 5,
@@ -149,7 +153,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-05-11", bull: "ATHOS", inseminationNumber: 3 }],
-    calvingHistory: [{ currentCalvingDate: "2025-12-11", previousCalvingDate: "2024-09-23" }]
+    calvingHistory: [{ currentCalvingDate: "2025-12-11", previousCalvingDate: "2024-09-23" }],
+    farmID: ''
   },
   {
     id: 6,
@@ -179,7 +184,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-05-22", bull: "ATHOS", inseminationNumber: 1 }],
-    calvingHistory: [{ currentCalvingDate: "2026-02-08", previousCalvingDate: "2025-01-20" }]
+    calvingHistory: [{ currentCalvingDate: "2026-02-08", previousCalvingDate: "2025-01-20" }],
+    farmID: ''
   },
   {
     id: 7,
@@ -209,7 +215,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-06-21", bull: "JACK DANIELS", inseminationNumber: 6 }],
-    calvingHistory: [{ currentCalvingDate: "2025-09-12", previousCalvingDate: "2024-08-31" }]
+    calvingHistory: [{ currentCalvingDate: "2025-09-12", previousCalvingDate: "2024-08-31" }],
+    farmID: ''
   },
   {
     id: 8,
@@ -239,7 +246,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "DESCARTE",
     inseminationHistory: [{ lastInseminationDate: "2024-10-17", bull: "JIU JITSU", inseminationNumber: 6 }],
-    calvingHistory: [{ currentCalvingDate: "2024-04-24", previousCalvingDate: "2023-04-12" }]
+    calvingHistory: [{ currentCalvingDate: "2024-04-24", previousCalvingDate: "2023-04-12" }],
+    farmID: ''
   },
   {
     id: 9,
@@ -269,7 +277,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "DESCARTE",
     inseminationHistory: [{ lastInseminationDate: "2025-05-21", bull: "NELORE", inseminationNumber: 1 }],
-    calvingHistory: [{ currentCalvingDate: "2025-04-05", previousCalvingDate: "2024-03-05" }]
+    calvingHistory: [{ currentCalvingDate: "2025-04-05", previousCalvingDate: "2024-03-05" }],
+    farmID: ''
   },
   {
     id: 10,
@@ -299,7 +308,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "DESCARTE",
     inseminationHistory: [{ lastInseminationDate: "2025-05-21", bull: "NELORE", inseminationNumber: 1 }],
-    calvingHistory: [{ currentCalvingDate: "2025-04-04", previousCalvingDate: "2023-12-03" }]
+    calvingHistory: [{ currentCalvingDate: "2025-04-04", previousCalvingDate: "2023-12-03" }],
+    farmID: ''
   },
   {
     id: 11,
@@ -329,7 +339,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-04-01", bull: "BOI", inseminationNumber: 4 }],
-    calvingHistory: [{ currentCalvingDate: "2025-05-27", previousCalvingDate: "" }]
+    calvingHistory: [{ currentCalvingDate: "2025-05-27", previousCalvingDate: "" }],
+    farmID: ''
   },
   {
     id: 12,
@@ -359,7 +370,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-07-03", bull: "JACK DANIELS", inseminationNumber: 1 }],
-    calvingHistory: [{ currentCalvingDate: "2026-04-25", previousCalvingDate: "2024-12-08" }]
+    calvingHistory: [{ currentCalvingDate: "2026-04-25", previousCalvingDate: "2024-12-08" }],
+    farmID: ''
   },
   {
     id: 13,
@@ -389,7 +401,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-07-13", bull: "OLAF", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2026-03-12", previousCalvingDate: "2025-01-07" }]
+    calvingHistory: [{ currentCalvingDate: "2026-03-12", previousCalvingDate: "2025-01-07" }],
+    farmID: ''
   },
   {
     id: 14,
@@ -419,7 +432,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-07-16", bull: "OLAF", inseminationNumber: 4 }],
-    calvingHistory: [{ currentCalvingDate: "2025-07-10", previousCalvingDate: "2024-04-24" }]
+    calvingHistory: [{ currentCalvingDate: "2025-07-10", previousCalvingDate: "2024-04-24" }],
+    farmID: ''
   },
   {
     id: 15,
@@ -449,7 +463,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-07-19", bull: "OLAF", inseminationNumber: 5 }],
-    calvingHistory: [{ currentCalvingDate: "2026-01-21", previousCalvingDate: "2024-11-16" }]
+    calvingHistory: [{ currentCalvingDate: "2026-01-21", previousCalvingDate: "2024-11-16" }],
+    farmID: ''
   },
   {
     id: 16,
@@ -479,7 +494,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-07-21", bull: "JACK DANIELS", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2026-03-21", previousCalvingDate: "2025-04-09" }]
+    calvingHistory: [{ currentCalvingDate: "2026-03-21", previousCalvingDate: "2025-04-09" }],
+    farmID: ''
   },
   {
     id: 17,
@@ -509,7 +525,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-07-28", bull: "BOI", inseminationNumber: 5 }],
-    calvingHistory: [{ currentCalvingDate: "2025-09-13", previousCalvingDate: "" }]
+    calvingHistory: [{ currentCalvingDate: "2025-09-13", previousCalvingDate: "" }],
+    farmID: ''
   },
   {
     id: 18,
@@ -539,7 +556,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-08-03", bull: "JACK DANIELS", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2026-04-09", previousCalvingDate: "2025-05-26" }]
+    calvingHistory: [{ currentCalvingDate: "2026-04-09", previousCalvingDate: "2025-05-26" }],
+    farmID: ''
   },
   {
     id: 19,
@@ -569,7 +587,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-08-07", bull: "JACK DANIELS", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2026-04-10", previousCalvingDate: "2024-11-02" }]
+    calvingHistory: [{ currentCalvingDate: "2026-04-10", previousCalvingDate: "2024-11-02" }],
+    farmID: ''
   },
   {
     id: 20,
@@ -599,7 +618,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [{ lastInseminationDate: "2026-08-09", bull: "ATHOS", inseminationNumber: 2 }],
-    calvingHistory: [{ currentCalvingDate: "2026-03-21", previousCalvingDate: "2025-03-14" }]
+    calvingHistory: [{ currentCalvingDate: "2026-03-21", previousCalvingDate: "2025-03-14" }],
+    farmID: ''
   },
   {
     id: 21,
@@ -629,7 +649,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "",
     inseminationHistory: [],
-    calvingHistory: [{ currentCalvingDate: "2026-07-23", previousCalvingDate: "" }]
+    calvingHistory: [{ currentCalvingDate: "2026-07-23", previousCalvingDate: "" }],
+    farmID: ''
   },
   {
     id: 22,
@@ -659,7 +680,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "PROTOCOLO",
     inseminationHistory: [],
-    calvingHistory: [{ currentCalvingDate: "2026-06-29", previousCalvingDate: "2025-03-09" }]
+    calvingHistory: [{ currentCalvingDate: "2026-06-29", previousCalvingDate: "2025-03-09" }],
+    farmID: ''
   },
   {
     id: 23,
@@ -689,7 +711,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "PROTOCOLO",
     inseminationHistory: [],
-    calvingHistory: [{ currentCalvingDate: "2026-06-29", previousCalvingDate: "" }]
+    calvingHistory: [{ currentCalvingDate: "2026-06-29", previousCalvingDate: "" }],
+    farmID: ''
   },
   {
     id: 24,
@@ -719,7 +742,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "ANTI TOXICO",
     inseminationHistory: [],
-    calvingHistory: [{ currentCalvingDate: "2026-07-13", previousCalvingDate: "2024-04-03" }]
+    calvingHistory: [{ currentCalvingDate: "2026-07-13", previousCalvingDate: "2024-04-03" }],
+    farmID: ''
   },
   {
     id: 25,
@@ -749,7 +773,8 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "PROTOCOLO",
     inseminationHistory: [],
-    calvingHistory: [{ currentCalvingDate: "2026-05-29", previousCalvingDate: "" }]
+    calvingHistory: [{ currentCalvingDate: "2026-05-29", previousCalvingDate: "" }],
+    farmID: ''
   },
   {
     id: 26,
@@ -779,6 +804,7 @@ export const INITIAL_COWS: Cow[] = [
     dryingDate: "",
     observations: "DESCARTE",
     inseminationHistory: [],
-    calvingHistory: [{ currentCalvingDate: "2025-01-17", previousCalvingDate: "" }]
+    calvingHistory: [{ currentCalvingDate: "2025-01-17", previousCalvingDate: "" }],
+    farmID: ''
   }
 ];

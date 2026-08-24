@@ -23,9 +23,27 @@ export function DashboardKPIs({ cows }: DashboardKPIsProps) {
   const totalIp = cows.reduce((acc, cow) => acc + (cow.ip || 0), 0);
   const avgIp = totalIp > 0 ? (totalIp / cows.filter(c => c.ip > 0).length || 1).toFixed(1) : '0';
 
-  // 3. Contagem de DG+ (Prenhes)
-  const totalPregnant = cows.filter(cow => cow.diagnosisStatus === 'DG+').length;
-  const pregnancyRate = Math.round((totalPregnant / totalCows) * 100);
+  // 3. Contagem de DG+ (Prenhes) - Varredura flexível e abrangente
+  const totalPregnant = cows.filter(cow => {
+    const status = (
+      cow.diagnosisStatus || 
+      (cow as any).diagnosis || 
+      (cow as any).status || 
+      ''
+    ).toString().trim().toUpperCase();
+
+    const isDirectPositive = status === 'DG+' || status === 'PRENHE' || status === 'POSITIVO' || status === 'DG +';
+
+    const hasHistoryPositive = cow.inseminationHistory && cow.inseminationHistory.length > 0 && (
+      cow.inseminationHistory[0].successStatus === 'Prenhe / Sucesso' ||
+      cow.inseminationHistory[0].successStatus === 'DG+' ||
+      (cow.inseminationHistory[0] as any).status === 'DG+'
+    );
+
+    return isDirectPositive || hasHistoryPositive;
+  }).length;
+  
+  const pregnancyRate = totalCows > 0 ? Math.round((totalPregnant / totalCows) * 100) : 0;
 
   // 4. Vacas em Lactação (L) vs Secas (S)
   const lactatingCount = cows.filter(cow => cow.situation === 'L').length;

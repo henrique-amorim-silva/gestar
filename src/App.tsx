@@ -16,17 +16,20 @@ import { GeneralSituationDashboard } from "./components/GeneralSituationDashboar
 
 export function App() {
   const getCategoryCS = (iosCount: number) => {
-    if (iosCount === 0) return "Nulípara";
+    if (iosCount <= 0) return "Nulípara"; // Ou ajuste conforme sua regra para animais sem IA
     if (iosCount === 1) return "Primípara";
     return "Multípara";
   };
 
   // Nº IA: Representa o total exato de registros no histórico de inseminações
+  // Nº IA: Só retorna > 0 se realmente houver histórico ou dados de IA preenchidos
   const calculateEffectiveInsemNumber = (
     history: any[],
     currentInsemNum: number,
   ) => {
-    if (!history || history.length === 0) return currentInsemNum || 1;
+    if (!history || history.length === 0) {
+      return currentInsemNum > 0 ? currentInsemNum : 0;
+    }
     return history.length;
   };
 
@@ -177,7 +180,7 @@ export function App() {
       const farmCows = cows.filter((c) => c.farmID === currentFarmId);
       const nextOrder =
         farmCows.length > 0 ? Math.max(...farmCows.map((c) => c.order)) + 1 : 1;
-      
+
       const newCow: Cow = {
         ...cowData,
         id: Date.now(),

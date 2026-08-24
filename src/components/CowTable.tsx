@@ -347,7 +347,7 @@ export const CowTable: React.FC<CowTableProps> = ({
               ) : (
                 paginatedCows.map((cow) => {
                   const displayGS = cow.categoryGS || "-";
-                  const dgStatus = getLatestDGStatus(cow); //[cite: 13]
+                  const dgStatus = getLatestDGStatus(cow);
 
                   // Define a cor de acordo com o status atual do DG
                   let dgBadgeStyle = "bg-amber-100 text-amber-800";
@@ -356,6 +356,11 @@ export const CowTable: React.FC<CowTableProps> = ({
                   } else if (dgStatus === "DG-") {
                     dgBadgeStyle = "bg-red-100 text-red-800";
                   }
+
+                  // Verifica se realmente possui IA lançada/histórico
+                  const hasRealInsem = 
+                    (cow.inseminationNumber && cow.inseminationNumber > 0 && (cow.lastInseminationDate || (cow.inseminationHistory && cow.inseminationHistory.length > 0))) ||
+                    (cow.inseminationHistory && cow.inseminationHistory.length > 0);
 
                   return (
                     <tr
@@ -455,7 +460,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                         </button>
                       </td>
                       <td className="px-1.5 py-2 text-center font-semibold whitespace-nowrap">
-                        {cow.inseminationNumber}
+                        {hasRealInsem ? cow.inseminationNumber : "-"}
                       </td>
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">
                         {cow.heatsCount}
