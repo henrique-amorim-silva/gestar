@@ -1,4 +1,4 @@
-import type { Cow } from '../types/cow';
+import type { Cow } from "../types/cow";
 
 interface DashboardAlertsProps {
   cows: Cow[];
@@ -16,22 +16,27 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
   };
 
   // 1. Partos Previstos para os próximos 30 dias (e que não passaram há mais de 5 dias)
-  const upcomingCalvings = cows.filter(cow => {
+  const upcomingCalvings = cows.filter((cow) => {
     const diff = getDaysDifference(cow.expectedCalvingDate);
     return diff !== null && diff >= -5 && diff <= 30;
   });
 
-  // 2. Vacas com IA (sistema ou legado) e que estão com DG- ou Pendente (vazio)
   const pendingDGs = cows.filter(cow => {
-    // Verifica se a vaca passou por IA
     const hasInsemination = Boolean(cow.lastInseminationDate) || (cow.inseminationHistory && cow.inseminationHistory.length > 0);
     if (!hasInsemination) return false;
 
-    // Padroniza e checa o status de DG
-    const dgStatus = (cow.diagnosisStatus || '').trim().toUpperCase();
+    // Replica a mesma lógica de cálculo de status de DG usada na tabela
+    let dgStatus = 'Pendente';
+    if (cow.inseminationHistory && cow.inseminationHistory.length > 0) {
+      const latest = cow.inseminationHistory[0];
+      const status = latest.successStatus;
+      if (status === 'Prenhe / Sucesso' || status === 'DG+') dgStatus = 'DG+';
+      else if (status === 'Vazia / Falha' || status === 'DG-') dgStatus = 'DG-';
+    }
 
-    // Deve aparecer se estiver vazia (DG-) ou se o diagnóstico estiver pendente (vazio)
-    return dgStatus === 'DG-' || dgStatus === '';
+    // O animal só fica pendente no painel se o status for 'Pendente' ou 'DG-'
+    // Se virou 'DG+', ele some automaticamente do acompanhamento de IA/DG
+    return dgStatus === 'Pendente' || dgStatus === 'DG-';
   });
 
   return (
@@ -48,24 +53,34 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
         </div>
 
         {upcomingCalvings.length === 0 ? (
-          <p className="text-xs text-gray-400 py-2">Nenhum parto previsto para os próximos dias.</p>
+          <p className="text-xs text-gray-400 py-2">
+            Nenhum parto previsto para os próximos dias.
+          </p>
         ) : (
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-            {upcomingCalvings.map(cow => {
+            {upcomingCalvings.map((cow) => {
               const diff = getDaysDifference(cow.expectedCalvingDate);
               return (
-                <div key={cow.id} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border">
+                <div
+                  key={cow.id}
+                  className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border"
+                >
                   <div>
-                    <span className="font-bold text-gray-800">Brinco {cow.numberTag || 'S/N'}</span> - {cow.name}
+                    <span className="font-bold text-gray-800">
+                      Brinco {cow.numberTag || "S/N"}
+                    </span>{" "}
+                    - {cow.name}
                   </div>
                   <div className="text-right">
-                    <span className="font-medium text-amber-700">Previsto: {cow.expectedCalvingDate}</span>
+                    <span className="font-medium text-amber-700">
+                      Previsto: {cow.expectedCalvingDate}
+                    </span>
                     <span className="block text-[10px] text-gray-400">
-                      {diff !== null && diff === 0 
-                        ? 'É hoje!' 
-                        : diff !== null && diff < 0 
-                        ? `Passou ${Math.abs(diff)} dias` 
-                        : `Faltam ${diff} dias`}
+                      {diff !== null && diff === 0
+                        ? "É hoje!"
+                        : diff !== null && diff < 0
+                          ? `Passou ${Math.abs(diff)} dias`
+                          : `Faltam ${diff} dias`}
                     </span>
                   </div>
                 </div>
@@ -87,17 +102,29 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
         </div>
 
         {pendingDGs.length === 0 ? (
-          <p className="text-xs text-gray-400 py-2">Nenhum animal pendente de revisão recente.</p>
+          <p className="text-xs text-gray-400 py-2">
+            Nenhum animal pendente de revisão recente.
+          </p>
         ) : (
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-            {pendingDGs.map(cow => (
-              <div key={cow.id} className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border">
+            {pendingDGs.map((cow) => (
+              <div
+                key={cow.id}
+                className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border"
+              >
                 <div>
-                  <span className="font-bold text-gray-800">Brinco {cow.numberTag || 'S/N'}</span> - {cow.name}
+                  <span className="font-bold text-gray-800">
+                    Brinco {cow.numberTag || "S/N"}
+                  </span>{" "}
+                  - {cow.name}
                 </div>
                 <div className="text-right">
-                  <span className="text-gray-600">Últ. IA: {cow.lastInseminationDate || 'N/D'}</span>
-                  <span className="block text-[10px] font-semibold text-blue-600">IA nº {cow.inseminationNumber}</span>
+                  <span className="text-gray-600">
+                    Últ. IA: {cow.lastInseminationDate || "N/D"}
+                  </span>
+                  <span className="block text-[10px] font-semibold text-blue-600">
+                    IA nº {cow.inseminationNumber}
+                  </span>
                 </div>
               </div>
             ))}
