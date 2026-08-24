@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { INITIAL_COWS } from "./data/initialCows";
 import { CowTable } from "./components/CowTable";
 import { CowForm } from "./components/CowForm";
@@ -6,8 +6,9 @@ import { InseminationModal } from "./components/InseminationModal";
 import { CalvingModal } from "./components/CalvingModal";
 import { CalvingHistoryModal } from "./components/CalvingHistoryModal";
 import { InseminationHistoryModal } from "./components/InseminationHistoryModal";
+import { NewFarmModal } from "./components/NewFarmModal";
 import { DashboardKPIs } from "./components/DashboardKPIs";
-import type { Cow } from "./types/cow";
+import type { Cow, Farm } from "./types/cow";
 import { calculateReproductionFields } from "./utils/reproductionCalculations";
 import { DashboardAlerts } from "./components/DashboardAlerts";
 import { ReproductionGauges } from "./components/ReproductionGauges";
@@ -29,17 +30,35 @@ export function App() {
     return history.length;
   };
 
-  // Cios: Conta apenas as tentativas do ciclo atual (até achar o primeiro DG+ ou o fim do histórico)
+  // Cios: Conta apenas as tentativas do ciclo atual
   const calculateEffectiveHeatsCount = (history: any[]) => {
     if (!history || history.length === 0) return 0;
-    
+
     return history.filter(
       (item) =>
         item.successStatus === "Prenhe / Sucesso" ||
-        item.successStatus === "DG+"
+        item.successStatus === "DG+",
     ).length;
   };
 
+  // Estados de Fazendas
+  const [farms, setFarms] = useState<Farm[]>(() => {
+    const saved = localStorage.getItem("app_farms");
+    if (saved) return JSON.parse(saved);
+    return [{ id: "fazenda-teste", name: "Fazenda Teste" }];
+  });
+
+  const [currentFarmId, setCurrentFarmId] = useState<string>(() => {
+    const savedFarms = localStorage.getItem("app_farms");
+    const parsedFarms = savedFarms
+      ? JSON.parse(savedFarms)
+      : [{ id: "fazenda-teste", name: "Fazenda Teste" }];
+    return parsedFarms[0].id;
+  });
+
+  const [isNewFarmModalOpen, setIsNewFarmModalOpen] = useState(false);
+
+  // Estados de Vacas
   const [cows, setCows] = useState<Cow[]>(() => {
     const saved = localStorage.getItem("@gestar_cows");
     if (saved) {
@@ -49,8 +68,10 @@ export function App() {
           cow.inseminationHistory || [],
           cow.inseminationNumber,
         );
-        const effectiveHeatsCount = calculateEffectiveHeatsCount(cow.inseminationHistory || []);
-        
+        const effectiveHeatsCount = calculateEffectiveHeatsCount(
+          cow.inseminationHistory || [],
+        );
+
         const calculated = calculateReproductionFields({
           currentCalvingDate: cow.currentCalvingDate,
           previousCalvingDate: cow.previousCalvingDate,
@@ -61,6 +82,7 @@ export function App() {
         });
         return {
           ...cow,
+          farmID: cow.farmID || "fazenda-teste",
           ...calculated,
           inseminationNumber: effectiveInsemNum,
           heatsCount: effectiveHeatsCount,
@@ -68,7 +90,7 @@ export function App() {
         };
       });
     }
-    return INITIAL_COWS;
+    return INITIAL_COWS.map((c) => ({ ...c, farmID: "fazenda-teste" }));
   });
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -89,9 +111,27 @@ export function App() {
   const [cowForInseminationHistory, setCowForInseminationHistory] =
     useState<Cow | null>(null);
 
+  // Sincronização com o localStorage
+  useEffect(() => {
+    localStorage.setItem("app_farms", JSON.stringify(farms));
+  }, [farms]);
+
   useEffect(() => {
     localStorage.setItem("@gestar_cows", JSON.stringify(cows));
   }, [cows]);
+
+  // Filtrar vacas apenas da fazenda selecionada no momento
+  const activeCows = useMemo(() => {
+    return cows.filter((cow) => cow.farmID === currentFarmId);
+  }, [cows, currentFarmId]);
+
+  // Função para criar nova fazenda
+  const handleCreateFarm = (farmName: string) => {
+    const newId = "farm_" + Date.now();
+    const newFarm: Farm = { id: newId, name: farmName };
+    setFarms((prev) => [...prev, newFarm]);
+    setCurrentFarmId(newId);
+  };
 
   const handleSaveCow = (cowData: any) => {
     const trimmedTag = (cowData.numberTag || "").trim();
@@ -99,13 +139,14 @@ export function App() {
     if (trimmedTag) {
       const duplicateCow = cows.find(
         (c) =>
+          c.farmID === currentFarmId &&
           c.numberTag.trim().toLowerCase() === trimmedTag.toLowerCase() &&
           (!cowToEdit || c.id !== cowToEdit.id),
       );
 
       if (duplicateCow) {
         alert(
-          `Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}).`,
+          `Erro: Já existe uma vaca cadastrada com o número de brinco "${trimmedTag}" (${duplicateCow.name}) nesta fazenda.`,
         );
         return;
       }
@@ -133,11 +174,14 @@ export function App() {
       setCows(cows.map((cow) => (cow.id === cowToEdit.id ? updatedCow : cow)));
       setCowToEdit(null);
     } else {
+      const farmCows = cows.filter((c) => c.farmID === currentFarmId);
       const nextOrder =
-        cows.length > 0 ? Math.max(...cows.map((c) => c.order)) + 1 : 1;
+        farmCows.length > 0 ? Math.max(...farmCows.map((c) => c.order)) + 1 : 1;
+      
       const newCow: Cow = {
         ...cowData,
         id: Date.now(),
+        farmID: currentFarmId,
         order: nextOrder,
         numberTag: cowData.numberTag || "",
         categoryGS: computedCategory,
@@ -249,7 +293,6 @@ export function App() {
       cows.map((cow) => {
         if (cow.id === cowId) {
           const existingHistory = cow.inseminationHistory || [];
-          
           const newInsemNumber = existingHistory.length + 1;
 
           const newInseminationRecord = {
@@ -257,14 +300,18 @@ export function App() {
             date: insemData.lastInseminationDate,
             lastInseminationDate: insemData.lastInseminationDate,
             bull: insemData.bull,
-            successStatus: insemData.successStatus || 'Pendente',
+            successStatus: insemData.successStatus || "Pendente",
             inseminationNumber: newInsemNumber,
           };
 
           const updatedHistory = [newInseminationRecord, ...existingHistory];
-          
-          const effectiveInsemNumber = calculateEffectiveInsemNumber(updatedHistory, newInsemNumber);
-          const effectiveHeatsCount = calculateEffectiveHeatsCount(updatedHistory);
+
+          const effectiveInsemNumber = calculateEffectiveInsemNumber(
+            updatedHistory,
+            newInsemNumber,
+          );
+          const effectiveHeatsCount =
+            calculateEffectiveHeatsCount(updatedHistory);
           const newCategoryGS = getCategoryCS(effectiveInsemNumber);
 
           const firstInseminationDate =
@@ -315,7 +362,6 @@ export function App() {
       sorted.length,
     );
     const effectiveHeatsCount = calculateEffectiveHeatsCount(sorted);
-
     const newCategoryGS = getCategoryCS(effectiveInsemNumber);
 
     setCows(
@@ -384,20 +430,45 @@ export function App() {
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
-        <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full flex items-center gap-4">
+        <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full flex flex-col sm:flex-row items-center justify-between gap-4">
           <img
             src={`${import.meta.env.BASE_URL}images/logo-gestar.png`}
             alt="Logo Gestar"
             className="h-12 w-auto object-contain"
           />
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-gray-700">
+                Fazenda:
+              </span>
+              <select
+                value={currentFarmId}
+                onChange={(e) => setCurrentFarmId(e.target.value)}
+                className="text-xs  text-black border border-emerald-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 font-medium"
+              >
+                {farms.map((farm) => (
+                  <option key={farm.id} value={farm.id}>
+                    {farm.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={() => setIsNewFarmModalOpen(true)}
+              className="text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg border border-emerald-600 transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap"
+            >
+              <span>+ Nova Fazenda</span>
+            </button>
+          </div>
         </header>
 
-        <GeneralSituationDashboard cows={cows} />
+        <GeneralSituationDashboard cows={activeCows} />
 
         <main className="w-full space-y-6">
-          <DashboardKPIs cows={cows} />
-          <ReproductionGauges cows={cows} />
-          <DashboardAlerts cows={cows} />
+          <DashboardKPIs cows={activeCows} />
+          <ReproductionGauges cows={activeCows} />
+          <DashboardAlerts cows={activeCows} />
 
           <div className="bg-white rounded-lg shadow p-5 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
@@ -418,7 +489,7 @@ export function App() {
             </div>
 
             <CowTable
-              cows={cows}
+              cows={activeCows}
               onEdit={handleEditCow}
               onDelete={handleDeleteCow}
               onInsemination={handleOpenInseminationModal}
@@ -434,7 +505,7 @@ export function App() {
           onClose={() => setIsModalOpen(false)}
           onSave={handleSaveCow}
           cowToEdit={cowToEdit}
-          cows={cows}
+          cows={activeCows}
         />
         <InseminationModal
           isOpen={isInsemModalOpen}
@@ -459,6 +530,11 @@ export function App() {
           onClose={() => setIsInseminationHistoryModalOpen(false)}
           cow={cowForInseminationHistory}
           onUpdateHistory={handleUpdateInseminationHistory}
+        />
+        <NewFarmModal
+          isOpen={isNewFarmModalOpen}
+          onClose={() => setIsNewFarmModalOpen(false)}
+          onSave={handleCreateFarm}
         />
       </div>
     </div>

@@ -1,5 +1,10 @@
+export interface Farm {
+  id: string;
+  name: string;
+}
+
 export interface InseminationRecord {
-  id?: string; // Adicionado para identificar unicamente cada lançamento
+  id?: string;
   date?: string;
   lastInseminationDate: string;
   bull: string;
@@ -16,6 +21,7 @@ export interface CalvingRecord {
 
 export interface Cow {
   id: number;
+  farmID: string;
   order: number;
   numberTag: string;
   name: string;
