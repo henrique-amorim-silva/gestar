@@ -20,22 +20,24 @@ export function App() {
     return "Multípara";
   };
 
-  // Função auxiliar para recalcular o número de cios efetivos com base nas IAs sem sucesso anterior ou até a bem-sucedida
+  // Nº IA: Representa o total exato de registros no histórico de inseminações
   const calculateEffectiveInsemNumber = (
     history: any[],
     currentInsemNum: number,
   ) => {
-    if (!history || history.length === 0) return currentInsemNum;
+    if (!history || history.length === 0) return currentInsemNum || 1;
+    return history.length;
+  };
 
-    // Conta quantas tentativas foram feitas no período ativo atual (ou conta sequencial até uma com sucesso)
-    let count = 0;
-    for (const item of history) {
-      count++;
-      if (item.successStatus === "Prenhe / Sucesso") {
-        break; // Se achou uma bem-sucedida, o ciclo de cios deste período fecha nela
-      }
-    }
-    return count > 0 ? count : currentInsemNum || 1;
+  // Cios: Conta apenas as tentativas do ciclo atual (até achar o primeiro DG+ ou o fim do histórico)
+  const calculateEffectiveHeatsCount = (history: any[]) => {
+    if (!history || history.length === 0) return 0;
+    
+    return history.filter(
+      (item) =>
+        item.successStatus === "Prenhe / Sucesso" ||
+        item.successStatus === "DG+"
+    ).length;
   };
 
   const [cows, setCows] = useState<Cow[]>(() => {
@@ -47,6 +49,8 @@ export function App() {
           cow.inseminationHistory || [],
           cow.inseminationNumber,
         );
+        const effectiveHeatsCount = calculateEffectiveHeatsCount(cow.inseminationHistory || []);
+        
         const calculated = calculateReproductionFields({
           currentCalvingDate: cow.currentCalvingDate,
           previousCalvingDate: cow.previousCalvingDate,
@@ -59,6 +63,7 @@ export function App() {
           ...cow,
           ...calculated,
           inseminationNumber: effectiveInsemNum,
+          heatsCount: effectiveHeatsCount,
           categoryGS: getCategoryCS(effectiveInsemNum),
         };
       });
@@ -231,7 +236,7 @@ export function App() {
     );
   };
 
- const handleSaveInsemination = (
+  const handleSaveInsemination = (
     cowId: number,
     insemData: {
       lastInseminationDate: string;
@@ -243,22 +248,24 @@ export function App() {
     setCows(
       cows.map((cow) => {
         if (cow.id === cowId) {
-          // Cria o registro exato da inseminação que está sendo adicionada agora,
-          // preservando especificamente a data e o touro informados neste modal.
+          const existingHistory = cow.inseminationHistory || [];
+          
+          const newInsemNumber = existingHistory.length + 1;
+
           const newInseminationRecord = {
             id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
             date: insemData.lastInseminationDate,
             lastInseminationDate: insemData.lastInseminationDate,
             bull: insemData.bull,
-            inseminationNumber: (cow.inseminationNumber || 0) + 1,
             successStatus: insemData.successStatus || 'Pendente',
+            inseminationNumber: newInsemNumber,
           };
 
-          const newInsemNumber = insemData.incrementInseminationNumber
-            ? (cow.inseminationNumber || 0) + 1
-            : (cow.inseminationNumber || 1);
-
-          const newCategoryGS = getCategoryCS(newInsemNumber);
+          const updatedHistory = [newInseminationRecord, ...existingHistory];
+          
+          const effectiveInsemNumber = calculateEffectiveInsemNumber(updatedHistory, newInsemNumber);
+          const effectiveHeatsCount = calculateEffectiveHeatsCount(updatedHistory);
+          const newCategoryGS = getCategoryCS(effectiveInsemNumber);
 
           const firstInseminationDate =
             cow.firstInseminationDate || insemData.lastInseminationDate;
@@ -271,7 +278,7 @@ export function App() {
             lastInseminationDate: insemData.lastInseminationDate,
             firstInseminationDate: firstInseminationDate,
             firstHeatDate: firstHeatDate,
-            inseminationNumber: newInsemNumber,
+            inseminationNumber: effectiveInsemNumber,
           });
 
           return {
@@ -279,14 +286,12 @@ export function App() {
             ...calculated,
             lastInseminationDate: insemData.lastInseminationDate,
             bull: insemData.bull,
-            inseminationNumber: newInsemNumber,
+            inseminationNumber: effectiveInsemNumber,
+            heatsCount: effectiveHeatsCount,
             categoryGS: newCategoryGS,
             firstInseminationDate,
             firstHeatDate,
-            inseminationHistory: [
-              newInseminationRecord,
-              ...(cow.inseminationHistory || []),
-            ],
+            inseminationHistory: updatedHistory,
           };
         }
         return cow;
@@ -309,6 +314,8 @@ export function App() {
       sorted,
       sorted.length,
     );
+    const effectiveHeatsCount = calculateEffectiveHeatsCount(sorted);
+
     const newCategoryGS = getCategoryCS(effectiveInsemNumber);
 
     setCows(
@@ -335,6 +342,7 @@ export function App() {
               : "",
             bull: latestInsemination ? latestInsemination.bull : "",
             inseminationNumber: effectiveInsemNumber,
+            heatsCount: effectiveHeatsCount,
             categoryGS: newCategoryGS,
             inseminationHistory: sorted,
           };
@@ -391,7 +399,6 @@ export function App() {
           <ReproductionGauges cows={cows} />
           <DashboardAlerts cows={cows} />
 
-          {/* Seção única contendo o título do rebanho, o botão de nova vaca e a tabela */}
           <div className="bg-white rounded-lg shadow p-5 space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
               <div>
