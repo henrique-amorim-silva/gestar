@@ -360,6 +360,12 @@ export function App() {
     );
     const latestInsemination = sorted[0];
 
+    // Verifica se o último histórico é positivo (DG+ ou Prenhe / Sucesso)
+    const isLatestPositive =
+      latestInsemination &&
+      (latestInsemination.successStatus === "DG+" ||
+        latestInsemination.successStatus === "Prenhe / Sucesso");
+
     const effectiveInsemNumber = calculateEffectiveInsemNumber(
       sorted,
       sorted.length,
@@ -385,6 +391,10 @@ export function App() {
           return {
             ...cow,
             ...calculated,
+            // Se o último não for positivo, anula a previsão de parto
+            expectedCalvingDate: isLatestPositive
+              ? calculated.expectedCalvingDate
+              : "",
             lastInseminationDate: latestInsemination
               ? latestInsemination.lastInseminationDate ||
                 latestInsemination.date

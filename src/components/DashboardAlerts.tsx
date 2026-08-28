@@ -15,8 +15,19 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-  // 1. Partos Previstos para os próximos 30 dias (e que não passaram há mais de 5 dias)
+  // Helper para verificar se o último histórico de IA é positivo (DG+)
+  const isLatestInseminationPositive = (cow: Cow) => {
+    if (!cow.inseminationHistory || cow.inseminationHistory.length === 0) {
+      return false;
+    }
+    const latest = cow.inseminationHistory[0];
+    const status = latest.successStatus;
+    return status === 'Prenhe / Sucesso' || status === 'DG+';
+  };
+
+  // 1. Partos Previstos para os próximos 30 dias (somente se o último histórico for DG+)
   const upcomingCalvings = cows.filter((cow) => {
+    if (!isLatestInseminationPositive(cow)) return false;
     const diff = getDaysDifference(cow.expectedCalvingDate);
     return diff !== null && diff >= -5 && diff <= 30;
   });
@@ -35,7 +46,6 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
     }
 
     // O animal só fica pendente no painel se o status for 'Pendente' ou 'DG-'
-    // Se virou 'DG+', ele some automaticamente do acompanhamento de IA/DG
     return dgStatus === 'Pendente' || dgStatus === 'DG-';
   });
 

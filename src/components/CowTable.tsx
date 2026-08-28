@@ -480,8 +480,15 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">
                         {cow.expectedIp}
                       </td>
-                      <td className="px-2 py-2 whitespace-nowrap">
-                        {formatDate(cow.expectedCalvingDate)}
+                     <td className="px-2 py-2 whitespace-nowrap">
+                        {(() => {
+                          const latestInsem = cow.inseminationHistory?.[0];
+                          const isPositive = latestInsem && (
+                            latestInsem.successStatus === 'DG+' || 
+                            latestInsem.successStatus === 'Prenhe / Sucesso'
+                          );
+                          return isPositive ? formatDate(cow.expectedCalvingDate) : "-";
+                        })()}
                       </td>
                       <td className="px-2 py-2 font-medium text-indigo-700 whitespace-nowrap">
                         {cow.bull}
