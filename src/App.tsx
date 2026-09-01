@@ -204,20 +204,20 @@ export function App() {
     }
   };
 
-  const handleSaveCalving = (cowId: number, newCalvingDate: string) => {
+  const handleSaveCalving = (cowId: number, newCalvingDate: string, offspringCount: number) => {
     setCows(
       cows.map((cow) => {
         if (cow.id === cowId) {
           const previousState = {
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
+            offspringCount: cow.offspringCount, // Opcional: se quiser salvar no histórico de partos também
           };
 
           const updatedPreviousCalving =
             cow.currentCalvingDate || cow.previousCalvingDate;
           const updatedCurrentCalving = newCalvingDate;
 
-          // Cria um registro automático de PEV (Período de Espera Voluntário) para iniciar o novo ciclo
           const pevRecord = {
             id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
             date: newCalvingDate,
@@ -225,7 +225,7 @@ export function App() {
             bull: "",
             successStatus: "PEV",
             inseminationNumber: 0,
-            isCalvingRecord: true, // <-- Identifica que veio de um parto
+            isCalvingRecord: true,
           };
 
           const existingHistory = cow.inseminationHistory || [];
@@ -234,10 +234,10 @@ export function App() {
           const calculated = calculateReproductionFields({
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            lastInseminationDate: "", // Reseta a última IA do novo ciclo
-            firstInseminationDate: "", // Reseta a 1ª IA do novo ciclo
+            lastInseminationDate: "", 
+            firstInseminationDate: "", 
             firstHeatDate: "",
-            inseminationNumber: 0, // Zera o contador de IAs do novo ciclo
+            inseminationNumber: 0, 
           });
 
           return {
@@ -245,12 +245,12 @@ export function App() {
             ...calculated,
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            // Campos do ciclo atual limpos conforme solicitado:
+            offspringCount: offspringCount, // Atualiza o campo "crias" na tabela com o valor informado
             lastInseminationDate: "",
             firstInseminationDate: "",
             firstHeatDate: "",
             inseminationNumber: 0,
-            bull: "", // Retira o nome do touro
+            bull: "", 
             inseminationHistory: updatedHistory,
             calvingHistory: [previousState, ...(cow.calvingHistory || [])],
           };

@@ -4,17 +4,20 @@ import type { Cow } from '../types/cow';
 interface CalvingModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (cowId: number, newCalvingDate: string) => void;
+  // Atualizado para receber também a quantidade de crias
+  onSave: (cowId: number, newCalvingDate: string, offspringCount: number) => void;
   cow: Cow | null;
 }
 
 export const CalvingModal: React.FC<CalvingModalProps> = ({ isOpen, onClose, onSave, cow }) => {
   const [calvingDate, setCalvingDate] = useState(new Date().toISOString().split('T')[0]);
+  const [offspringCount, setOffspringCount] = useState<number>(1); // Novo estado para quantidade de crias (padrão 1)
   const [error, setError] = useState('');
 
   useEffect(() => {
     if (cow) {
       setCalvingDate(new Date().toISOString().split('T')[0]);
+      setOffspringCount(1);
       setError('');
     }
   }, [cow, isOpen]);
@@ -25,13 +28,12 @@ export const CalvingModal: React.FC<CalvingModalProps> = ({ isOpen, onClose, onS
     e.preventDefault();
     setError('');
 
-    // Validação: a data do novo parto não pode ser menor que o parto atual já existente
     if (cow.currentCalvingDate && calvingDate < cow.currentCalvingDate) {
       setError(`A data do novo parto não pode ser anterior ao parto atual (${cow.currentCalvingDate.split('-').reverse().join('/')}).`);
       return;
     }
 
-    onSave(cow.id, calvingDate);
+    onSave(cow.id, calvingDate, offspringCount); // Envia a quantidade de crias
     onClose();
   };
 
@@ -64,6 +66,20 @@ export const CalvingModal: React.FC<CalvingModalProps> = ({ isOpen, onClose, onS
             <p className="text-xs text-gray-500 mt-1">
               Parto Atual Anterior: {cow.currentCalvingDate ? cow.currentCalvingDate.split('-').reverse().join('/') : 'Nenhum'}
             </p>
+          </div>
+
+          {/* Novo campo para Quantidade de Crias */}
+          <div>
+            <label className="block font-medium text-gray-700">Quantidade de Crias</label>
+            <input
+              type="number"
+              min="1"
+              max="5"
+              className="mt-1 w-full border rounded p-2"
+              value={offspringCount}
+              onChange={e => setOffspringCount(Number(e.target.value))}
+              required
+            />
           </div>
 
           <div className="flex justify-end gap-2 mt-6 border-t pt-4">
