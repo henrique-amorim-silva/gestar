@@ -249,7 +249,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs / Cios</label>
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs</label>
             <input type="number" className="w-full p-2 border rounded" value={formData.heatsCount} onChange={e => handleCiosChange(Number(e.target.value))} />
           </div>
           <div>

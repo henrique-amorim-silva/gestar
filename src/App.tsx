@@ -16,13 +16,11 @@ import { GeneralSituationDashboard } from "./components/GeneralSituationDashboar
 
 export function App() {
   const getCategoryCS = (iosCount: number) => {
-    if (iosCount <= 0) return "Nulípara"; // Ou ajuste conforme sua regra para animais sem IA
+    if (iosCount <= 0) return "Nulípara";
     if (iosCount === 1) return "Primípara";
     return "Multípara";
   };
 
-  // Nº IA: Representa o total exato de registros no histórico de inseminações
-  // Nº IA: Só retorna > 0 se realmente houver histórico ou dados de IA preenchidos
   const calculateEffectiveInsemNumber = (
     history: any[],
     currentInsemNum: number,
@@ -33,7 +31,6 @@ export function App() {
     return history.length;
   };
 
-  // Cios: Conta apenas as tentativas do ciclo atual
   const calculateEffectiveHeatsCount = (history: any[]) => {
     if (!history || history.length === 0) return 0;
 
@@ -123,12 +120,10 @@ export function App() {
     localStorage.setItem("@gestar_cows", JSON.stringify(cows));
   }, [cows]);
 
-  // Filtrar vacas apenas da fazenda selecionada no momento
   const activeCows = useMemo(() => {
     return cows.filter((cow) => cow.farmID === currentFarmId);
   }, [cows, currentFarmId]);
 
-  // Função para criar nova fazenda
   const handleCreateFarm = (farmName: string) => {
     const newId = "farm_" + Date.now();
     const newFarm: Farm = { id: newId, name: farmName };
@@ -211,7 +206,7 @@ export function App() {
           const previousState = {
             currentCalvingDate: cow.currentCalvingDate,
             previousCalvingDate: cow.previousCalvingDate,
-            offspringCount: cow.offspringCount, // Opcional: se quiser salvar no histórico de partos também
+            offspringCount: cow.offspringCount,
           };
 
           const updatedPreviousCalving =
@@ -226,6 +221,7 @@ export function App() {
             successStatus: "PEV",
             inseminationNumber: 0,
             isCalvingRecord: true,
+            offspringCount: offspringCount, // Salva o número de crias no registro do histórico
           };
 
           const existingHistory = cow.inseminationHistory || [];
@@ -245,7 +241,7 @@ export function App() {
             ...calculated,
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            offspringCount: offspringCount, // Atualiza o campo "crias" na tabela com o valor informado
+            offspringCount: offspringCount,
             lastInseminationDate: "",
             firstInseminationDate: "",
             firstHeatDate: "",
@@ -264,17 +260,16 @@ export function App() {
     setCows(
       cows.map((cow) => {
         if (cow.id === cowId) {
-          // Remove apenas o registro de PEV cuja data corresponda exatamente ao parto excluído
+          // 1. Remove o registro de PEV/Parto correspondente
           const updatedHistory = (cow.inseminationHistory || []).filter(
             (item: any) => {
-              if (!item.isCalvingRecord) return true; // Mantém as IAs normais intactas
+              if (!item.isCalvingRecord) return true;
               const itemDate = (item.date || item.lastInseminationDate || "").split("T")[0];
-              // Se tivermos a data específica, remove apenas se bater a data. Senão, mantém.
               return dateToDelete ? itemDate !== dateToDelete.split("T")[0] : false;
             }
           );
 
-          // Restaura o parto anterior se houver histórico de partos salvos
+          // 2. Restaura o parto anterior salvo no histórico de partos (se houver)
           const previousCalving = cow.calvingHistory?.[0] || null;
           const remainingCalvingHistory = (cow.calvingHistory || []).slice(1);
 
@@ -285,31 +280,64 @@ export function App() {
             ? previousCalving.previousCalvingDate
             : "";
 
+          // 3. Atualiza o número de crias com base no parto remanescente mais recente
+          const remainingCalvingRecords = updatedHistory
+            .filter((item: any) => item.isCalvingRecord)
+            .sort((a: any, b: any) => new Date(b.date || b.lastInseminationDate).getTime() - new Date(a.date || a.lastInseminationDate).getTime());
+
+          const newOffspringCount = remainingCalvingRecords.length > 0
+            ? (remainingCalvingRecords[0].offspringCount || 1)
+            : 0;
+
+          // 4. Identifica a última IA/Cobertura ativa que sobrou no histórico
+          const activeInseminations = updatedHistory
+            .filter((item: any) => !item.isCalvingRecord)
+            .sort((a: any, b: any) => 
+              new Date(b.date || b.lastInseminationDate).getTime() - new Date(a.date || a.lastInseminationDate).getTime()
+            );
+
+          const latestActiveInsem = activeInseminations[0] || null;
+
+          const effectiveInsemNumber = calculateEffectiveInsemNumber(
+            updatedHistory,
+            activeInseminations.length
+          );
+          const effectiveHeatsCount = calculateEffectiveHeatsCount(updatedHistory);
+          const newCategoryGS = getCategoryCS(effectiveInsemNumber);
+
+          const isLatestPositive =
+            latestActiveInsem &&
+            (latestActiveInsem.successStatus === "DG+" ||
+             latestActiveInsem.successStatus === "Prenhe / Sucesso");
+
+          const determinedLastInsemDate = latestActiveInsem 
+            ? (latestActiveInsem.lastInseminationDate || latestActiveInsem.date || "") 
+            : "";
+
+          // 5. Recalcula os campos reprodutivos passando explicitamente uma string vazia se não houver data
           const calculated = calculateReproductionFields({
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            lastInseminationDate: cow.lastInseminationDate,
-            firstInseminationDate: cow.firstInseminationDate,
-            firstHeatDate: cow.firstHeatDate,
-            inseminationNumber: cow.inseminationNumber,
+            lastInseminationDate: determinedLastInsemDate,
+            firstInseminationDate: cow.firstInseminationDate || "",
+            firstHeatDate: cow.firstHeatDate || "",
+            inseminationNumber: effectiveInsemNumber,
           });
 
           return {
             ...cow,
             ...calculated,
+            expectedCalvingDate: isLatestPositive ? calculated.expectedCalvingDate : "",
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
+            offspringCount: newOffspringCount,
+            lastInseminationDate: determinedLastInsemDate,
+            bull: latestActiveInsem ? (latestActiveInsem.bull || "") : "",
+            inseminationNumber: effectiveInsemNumber,
+            heatsCount: effectiveHeatsCount,
+            categoryGS: newCategoryGS,
             inseminationHistory: updatedHistory,
             calvingHistory: remainingCalvingHistory,
-            ...(updatedHistory.length === 0
-              ? {
-                  lastInseminationDate: "",
-                  firstInseminationDate: "",
-                  firstHeatDate: "",
-                  inseminationNumber: 0,
-                  bull: "",
-                }
-              : {}),
           };
         }
         return cow;
@@ -438,7 +466,6 @@ export function App() {
     );
     const latestInsemination = sorted[0];
 
-    // Verifica se o último histórico é positivo (DG+ ou Prenhe / Sucesso)
     const isLatestPositive =
       latestInsemination &&
       (latestInsemination.successStatus === "DG+" ||
@@ -469,7 +496,6 @@ export function App() {
           return {
             ...cow,
             ...calculated,
-            // Se o último não for positivo, anula a previsão de parto
             expectedCalvingDate: isLatestPositive
               ? calculated.expectedCalvingDate
               : "",

@@ -6,7 +6,12 @@ interface CalvingHistoryModalProps {
   onClose: () => void;
   cow: Cow | null;
   onUpdateHistory: (cowId: number, updatedDates: string[]) => void;
-  onDeleteCalving?: (cowId: number, dateToDelete?: string) => void; // <-- Atualize a tipagem aqui
+  onDeleteCalving?: (cowId: number, dateToDelete?: string) => void;
+}
+
+interface CalvingItem {
+  date: string;
+  offspringCount: number | string;
 }
 
 export function CalvingHistoryModal({
@@ -16,54 +21,58 @@ export function CalvingHistoryModal({
   onUpdateHistory,
   onDeleteCalving,
 }: CalvingHistoryModalProps) {
-  const [calvingDates, setCalvingDates] = useState<string[]>([]);
+  const [calvingRecords, setCalvingRecords] = useState<CalvingItem[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editDateValue, setEditDateValue] = useState("");
+  const [editOffspringValue, setEditOffspringValue] = useState<number>(1);
   const [newDateValue, setNewDateValue] = useState("");
+  const [newOffspringValue, setNewOffspringValue] = useState<number>(1);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
-  // Sincroniza e atualiza a lista sempre que o modal abre ou a vaca muda
- // Sincroniza e atualiza a lista sempre que o modal abre ou a vaca muda
+  // Sincroniza e extrai as datas e a quantidade de crias associadas
   useEffect(() => {
     if (!cow) return;
 
-    let dates: string[] = [];
+    const recordMap = new Map<string, number | string>();
 
-    // 1. Tenta extrair do array calvingHistory cobrindo diferentes nomenclaturas de propriedades
-    if (cow.calvingHistory && cow.calvingHistory.length > 0) {
-      cow.calvingHistory.forEach((item: any) => {
-        const d = item.currentCalvingDate || item.date || item.calvingDate || item.data;
-        if (d && typeof d === 'string') dates.push(d.split('T')[0]);
-
-        const prevD = item.previousCalvingDate;
-        if (prevD && typeof prevD === 'string') dates.push(prevD.split('T')[0]);
-      });
-    }
-
-    // 2. Se houver histórico de inseminação com status PEV, puxa também como data de parto válida
+    // 1. Verifica no histórico de inseminação (onde os partos geram registros PEV com a quantidade de crias, se armazenada)
     if (cow.inseminationHistory && cow.inseminationHistory.length > 0) {
       cow.inseminationHistory.forEach((item: any) => {
         const status = item.successStatus || item.status;
         if (item.isCalvingRecord || status === 'PEV') {
-          const pevDate = item.date || item.lastInseminationDate || item.data;
-          if (pevDate && typeof pevDate === 'string') {
-            dates.push(pevDate.split('T')[0]);
+          const pevDate = (item.date || item.lastInseminationDate || item.data || "").split('T')[0];
+          if (pevDate) {
+            recordMap.set(pevDate, item.offspringCount || cow.offspringCount || 1);
           }
         }
       });
     }
 
-    // 3. Fallback para propriedades diretas da vaca se o array estiver vazio
-    if (cow.currentCalvingDate) dates.push(String(cow.currentCalvingDate).split('T')[0]);
-    if (cow.previousCalvingDate) dates.push(String(cow.previousCalvingDate).split('T')[0]);
+    // 2. Fallback para as propriedades atuais da vaca se houver parto atual
+    if (cow.currentCalvingDate) {
+      const curDate = String(cow.currentCalvingDate).split('T')[0];
+      if (!recordMap.has(curDate)) {
+        recordMap.set(curDate, cow.offspringCount || 1);
+      }
+    }
 
-    // Remove duplicadas e limpa valores vazios
-    dates = Array.from(new Set(dates)).filter(Boolean);
+    // 3. Fallback para parto anterior
+    if (cow.previousCalvingDate) {
+      const prevDate = String(cow.previousCalvingDate).split('T')[0];
+      if (!recordMap.has(prevDate)) {
+        recordMap.set(prevDate, 1);
+      }
+    }
 
-    // Ordena da mais recente para a mais antiga
-    dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    // Converte o Map em array de objetos e ordena do mais recente para o mais antigo
+    const records: CalvingItem[] = Array.from(recordMap.entries()).map(([date, offspringCount]) => ({
+      date,
+      offspringCount,
+    }));
+
+    records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
-    setCalvingDates(dates);
+    setCalvingRecords(records);
     setEditingIndex(null);
     setIsAddingNew(false);
   }, [cow, isOpen]);
@@ -71,46 +80,49 @@ export function CalvingHistoryModal({
   if (!isOpen || !cow) return null;
 
   const handleDelete = (indexToDelete: number) => {
-    const dateToDelete = calvingDates[indexToDelete]; // Pega a data exata do parto que será excluído
+    const dateToDelete = calvingRecords[indexToDelete].date;
     if (
       window.confirm(
         "Tem certeza que deseja excluir esta data do histórico de partos?",
       )
     ) {
-      const updated = calvingDates.filter((_, i) => i !== indexToDelete);
-      setCalvingDates(updated); 
-      onUpdateHistory(cow.id, updated); 
+      const updatedRecords = calvingRecords.filter((_, i) => i !== indexToDelete);
+      setCalvingRecords(updatedRecords); 
+      
+      const updatedDates = updatedRecords.map(r => r.date);
+      onUpdateHistory(cow.id, updatedDates); 
       if (onDeleteCalving) {
-        onDeleteCalving(cow.id, dateToDelete); // <-- Passa a data exata aqui
+        onDeleteCalving(cow.id, dateToDelete);
       }
     }
   };
 
-  const handleStartEdit = (index: number, dateStr: string) => {
+  const handleStartEdit = (index: number, record: CalvingItem) => {
     setEditingIndex(index);
-    setEditDateValue(dateStr);
+    setEditDateValue(record.date);
+    setEditOffspringValue(Number(record.offspringCount) || 1);
   };
 
   const handleSaveEdit = (indexToEdit: number) => {
-    const updated = calvingDates.map((date, i) =>
-      i === indexToEdit ? editDateValue : date,
+    const updated = calvingRecords.map((item, i) =>
+      i === indexToEdit ? { date: editDateValue, offspringCount: editOffspringValue } : item,
     );
-    // Reordena para manter sempre do mais recente para o mais antigo
-    updated.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    setCalvingDates(updated); // Atualiza na hora na tela
-    onUpdateHistory(cow.id, updated); // Atualiza no App principal
+    setCalvingRecords(updated);
+    onUpdateHistory(cow.id, updated.map(r => r.date));
     setEditingIndex(null);
   };
 
   const handleAddDate = () => {
     if (!newDateValue) return;
-    const updated = [newDateValue, ...calvingDates];
-    updated.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+    const updated = [{ date: newDateValue, offspringCount: newOffspringValue }, ...calvingRecords];
+    updated.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-    setCalvingDates(updated); // Atualiza na hora na tela
-    onUpdateHistory(cow.id, updated); // Atualiza no App principal
+    setCalvingRecords(updated);
+    onUpdateHistory(cow.id, updated.map(r => r.date));
     setNewDateValue("");
+    setNewOffspringValue(1);
     setIsAddingNew(false);
   };
 
@@ -132,7 +144,7 @@ export function CalvingHistoryModal({
 
         <div className="flex justify-between items-center">
           <span className="text-xs font-semibold text-gray-600">
-            Partos Registrados ({calvingDates.length})
+            Partos Registrados ({calvingRecords.length})
           </span>
           {!isAddingNew && (
             <button
@@ -145,52 +157,85 @@ export function CalvingHistoryModal({
         </div>
 
         {isAddingNew && (
-          <div className="flex gap-2 items-center bg-gray-50 p-2.5 rounded border">
-            <input
-              type="date"
-              value={newDateValue}
-              onChange={(e) => setNewDateValue(e.target.value)}
-              className="w-full p-1 border rounded text-xs"
-            />
-            <button
-              onClick={handleAddDate}
-              className="bg-emerald-700 text-white px-3 py-1 rounded text-xs font-bold hover:bg-emerald-800"
-            >
-              Salvar
-            </button>
-            <button
-              onClick={() => setIsAddingNew(false)}
-              className="bg-gray-200 text-gray-700 px-2 py-1 rounded text-xs hover:bg-gray-300"
-            >
-              Cancelar
-            </button>
+          <div className="flex flex-col gap-2 bg-gray-50 p-3 rounded border text-xs">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block font-medium text-gray-700 mb-1">Data</label>
+                <input
+                  type="date"
+                  value={newDateValue}
+                  onChange={(e) => setNewDateValue(e.target.value)}
+                  className="w-full p-1.5 border rounded"
+                />
+              </div>
+              <div className="w-24">
+                <label className="block font-medium text-gray-700 mb-1">Crias</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={newOffspringValue}
+                  onChange={(e) => setNewOffspringValue(Number(e.target.value))}
+                  className="w-full p-1.5 border rounded"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-1">
+              <button
+                onClick={handleAddDate}
+                className="bg-emerald-700 text-white px-3 py-1 rounded font-bold hover:bg-emerald-800"
+              >
+                Salvar
+              </button>
+              <button
+                onClick={() => setIsAddingNew(false)}
+                className="bg-gray-200 text-gray-700 px-2 py-1 rounded hover:bg-gray-300"
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         )}
 
-        {calvingDates.length === 0 ? (
+        {calvingRecords.length === 0 ? (
           <p className="text-gray-500 text-center py-6 text-xs">
             Nenhum registro de parto encontrado.
           </p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-            {calvingDates.map((date, index) => (
+            {calvingRecords.map((record, index) => (
               <div
                 key={index}
                 className="border rounded p-2.5 bg-gray-50 flex justify-between items-center text-xs"
               >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <span className="font-bold text-gray-400">
-                    #{calvingDates.length - index}
+                    #{calvingRecords.length - index}
                   </span>
                   {editingIndex === index ? (
-                    <input
-                      type="date"
-                      value={editDateValue}
-                      onChange={(e) => setEditDateValue(e.target.value)}
-                      className="p-1 border rounded text-xs"
-                    />
+                    <div className="flex gap-2 items-center">
+                      <input
+                        type="date"
+                        value={editDateValue}
+                        onChange={(e) => setEditDateValue(e.target.value)}
+                        className="p-1 border rounded text-xs"
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        max="5"
+                        value={editOffspringValue}
+                        onChange={(e) => setEditOffspringValue(Number(e.target.value))}
+                        className="w-16 p-1 border rounded text-xs"
+                      />
+                    </div>
                   ) : (
-                    <span className="font-semibold text-gray-800">{date}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-gray-800">{record.date.split('-').reverse().join('/')}</span>
+                      <span className="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold text-[10px]">
+                        {record.offspringCount} {Number(record.offspringCount) === 1 ? 'Cria' : 'Crias'}
+                      </span>
+                    </div>
                   )}
                 </div>
 
@@ -213,7 +258,7 @@ export function CalvingHistoryModal({
                   ) : (
                     <>
                       <button
-                        onClick={() => handleStartEdit(index, date)}
+                        onClick={() => handleStartEdit(index, record)}
                         className="text-blue-600 hover:underline font-medium"
                       >
                         Editar

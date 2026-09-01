@@ -263,7 +263,7 @@ export const CowTable: React.FC<CowTableProps> = ({
 
           <div>
             <label className="block text-[11px] font-bold text-emerald-900 uppercase mb-1">
-              Grau de Sangue / Categoria (G.S.)
+              Categoria
             </label>
             <select
               value={advancedGS}
@@ -273,7 +273,7 @@ export const CowTable: React.FC<CowTableProps> = ({
               }}
               className="w-full text-xs border border-emerald-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
-              <option value="">Todos os G.S.</option>
+              <option value="">Todos as Categorias</option>
               {uniqueGSs.map((gs) => (
                 <option key={gs} value={gs}>
                   {gs}
@@ -318,7 +318,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                 <th className="px-1.5 py-2.5 bg-emerald-800">Num.</th>
                 <th className="px-2 py-2.5 bg-emerald-800">Vacas</th>
                 <th className="px-1.5 py-2.5 bg-emerald-800">Sit.</th>
-                <th className="px-2 py-2.5 bg-emerald-800">G.S.</th>
+                <th className="px-2 py-2.5 bg-emerald-800">Categoria</th>
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
                   Crias
                 </th>
