@@ -36,16 +36,18 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
     const hasInsemination = Boolean(cow.lastInseminationDate) || (cow.inseminationHistory && cow.inseminationHistory.length > 0);
     if (!hasInsemination) return false;
 
-    // Replica a mesma lógica de cálculo de status de DG usada na tabela
+    // Replica a mesma lógica de cálculo de status de DG usada nas outras telas (incluindo PEV)
     let dgStatus = 'Pendente';
     if (cow.inseminationHistory && cow.inseminationHistory.length > 0) {
       const latest = cow.inseminationHistory[0];
       const status = latest.successStatus;
       if (status === 'Prenhe / Sucesso' || status === 'DG+') dgStatus = 'DG+';
       else if (status === 'Vazia / Falha' || status === 'DG-') dgStatus = 'DG-';
+      else if (status === 'PEV') dgStatus = 'PEV';
     }
 
-    // O animal só fica pendente no painel se o status for 'Pendente' ou 'DG-'
+    // O animal fica pendente no painel se o status for 'Pendente' ou 'DG-' 
+    // (Animais em PEV ou DG+ não entram na listagem de pendências de revisão)
     return dgStatus === 'Pendente' || dgStatus === 'DG-';
   });
 

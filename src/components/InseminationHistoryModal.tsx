@@ -24,7 +24,8 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const getItemBull = (item: any, fallbackCowBull?: string) => {
     if (!item) return fallbackCowBull || '-';
     
-    const invalidValues = ['Prenhe / Sucesso', 'Vazia / Falha', 'Pendente', 'DG+', 'DG-', 'Pendente / Sem Diagnóstico'];
+    // Adicionado 'PEV' à lista de valores inválidos para o nome do touro
+    const invalidValues = ['Prenhe / Sucesso', 'Vazia / Falha', 'Pendente', 'DG+', 'DG-', 'PEV', 'Pendente / Sem Diagnóstico'];
     
     const directMatch = item.bull || item.touro || item.sire || item.reprodutor || item.bullName;
     if (directMatch && !invalidValues.includes(directMatch)) {
@@ -114,11 +115,15 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
       if (i === indexToToggle) {
         const currentFullStatus = getItemSuccess(item);
         
+        // Ciclo de alternância atualizado incluindo o PEV:
+        // Pendente ➔ DG+ (Prenhe / Sucesso) ➔ DG- (Vazia / Falha) ➔ PEV ➔ Pendente
         let nextFullStatus = 'Pendente';
         if (currentFullStatus === 'Pendente' || currentFullStatus === 'Pendente / Sem Diagnóstico') {
           nextFullStatus = 'Prenhe / Sucesso';
         } else if (currentFullStatus === 'Prenhe / Sucesso') {
           nextFullStatus = 'Vazia / Falha';
+        } else if (currentFullStatus === 'Vazia / Falha') {
+          nextFullStatus = 'PEV';
         } else {
           nextFullStatus = 'Pendente';
         }
@@ -189,6 +194,9 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
               } else if (fullStatus === 'Vazia / Falha') {
                 displayStatus = 'DG-';
                 badgeColor = 'bg-red-100 text-red-800 hover:bg-red-200';
+              } else if (fullStatus === 'PEV') {
+                displayStatus = 'PEV';
+                badgeColor = 'bg-purple-100 text-purple-800 hover:bg-purple-200';
               }
               
               return (
@@ -221,7 +229,7 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(index)}
-                          title="Clique para alternar o status (Pendente ➔ DG+ ➔ DG-)"
+                          title="Clique para alternar o status (Pendente ➔ DG+ ➔ DG- ➔ PEV)"
                           className={`px-2 py-0.5 rounded font-bold text-[10px] transition-colors cursor-pointer shadow-sm ${badgeColor}`}
                         >
                           {displayStatus}

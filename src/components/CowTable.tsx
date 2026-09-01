@@ -18,7 +18,7 @@ const formatDate = (dateString?: string | null) => {
   return `${day}/${month}/${year}`;
 };
 
-// Função auxiliar corrigida: se não houver histórico de IA válido, retorna 'Pendente'
+// Função auxiliar atualizada para mapear o status do DG (incluindo PEV)
 const getLatestDGStatus = (cow: Cow) => {
   // 1. Se houver histórico de inseminação, avalia o status dele
   if (cow.inseminationHistory && cow.inseminationHistory.length > 0) {
@@ -26,10 +26,11 @@ const getLatestDGStatus = (cow: Cow) => {
     const status = latest.successStatus;
     if (status === "Prenhe / Sucesso" || status === "DG+") return "DG+";
     if (status === "Vazia / Falha" || status === "DG-") return "DG-";
+    if (status === "PEV") return "PEV";
     return "Pendente";
   }
 
-  // 2. Se não tem histórico de IA, força o status para 'Pendente' (ignorando qualquer 'diagnosisStatus' herdado de cadastro vazio)
+  // 2. Se não tem histórico de IA, força o status para 'Pendente'
   return "Pendente";
 };
 
@@ -308,8 +309,8 @@ export const CowTable: React.FC<CowTableProps> = ({
                   Hist. Parto
                 </th>
                 <th className="px-2 py-2.5 bg-emerald-800">Parto Ant.</th>
-                <th className="px-2 py-2.5 bg-emerald-800">1º Cio/IA</th>
-                <th className="px-2 py-2.5 bg-emerald-800">Últ. Cio/IA</th>
+                <th className="px-2 py-2.5 bg-emerald-800">1ª IA</th>
+                <th className="px-2 py-2.5 bg-emerald-800">Últ. IA</th>
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
                   Hist. IA
                 </th>
@@ -349,12 +350,14 @@ export const CowTable: React.FC<CowTableProps> = ({
                   const displayGS = cow.categoryGS || "-";
                   const dgStatus = getLatestDGStatus(cow);
 
-                  // Define a cor de acordo com o status atual do DG
+                  // Define a cor do badge de acordo com o status atual do DG (incluindo PEV em roxo)
                   let dgBadgeStyle = "bg-amber-100 text-amber-800";
                   if (dgStatus === "DG+") {
                     dgBadgeStyle = "bg-green-100 text-green-800";
                   } else if (dgStatus === "DG-") {
                     dgBadgeStyle = "bg-red-100 text-red-800";
+                  } else if (dgStatus === "PEV") {
+                    dgBadgeStyle = "bg-purple-100 text-purple-800";
                   }
 
                   // Verifica se realmente possui IA lançada/histórico
