@@ -18,31 +18,26 @@ const formatDate = (dateString?: string | null) => {
   return `${day}/${month}/${year}`;
 };
 
-// Função auxiliar atualizada e sem erros de escopo
 const getLatestDGStatus = (cow: Cow) => {
   const latest = cow.inseminationHistory?.[0];
 
-  // 1. Verifica se existe parto atual para contar os 30 dias de PEV
   if (cow.currentCalvingDate) {
     const calvingDate = new Date(cow.currentCalvingDate);
     const today = new Date();
     const diffTime = today.getTime() - calvingDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    // Se estiver dentro dos primeiros 30 dias E não houver uma IA posterior ao parto
     if (diffDays >= 0 && diffDays <= 30) {
       if (!latest || new Date(latest.date || 0) < calvingDate || latest.successStatus === "PEV") {
         return "PEV";
       }
     } else if (diffDays > 30) {
-      // Se já passaram mais de 30 dias do parto:
       if (!latest || new Date(latest.date || 0) < calvingDate || latest.successStatus === "PEV") {
         return "Pendente";
       }
     }
   }
 
-  // 2. Avalia o histórico normal de IA caso já tenha movimentações posteriores
   if (cow.inseminationHistory && cow.inseminationHistory.length > 0 && latest) {
     const status = latest.successStatus;
     if (status === "Prenhe / Sucesso" || status === "DG+") return "DG+";
@@ -51,7 +46,6 @@ const getLatestDGStatus = (cow: Cow) => {
     return "Pendente";
   }
 
-  // 3. Padrão se não houver dados
   return "Pendente";
 };
 
@@ -64,22 +58,18 @@ export const CowTable: React.FC<CowTableProps> = ({
   onOpenCalvingHistory,
   onOpenInseminationHistory,
 }) => {
-  // Filtros Básicos
   const [filterTag, setFilterTag] = useState("");
   const [filterName, setFilterName] = useState("");
 
-  // Filtros Avançados
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [advancedSit, setAdvancedSit] = useState("");
   const [advancedDG, setAdvancedDG] = useState("");
   const [advancedGS, setAdvancedGS] = useState("");
   const [advancedBull, setAdvancedBull] = useState("");
 
-  // Paginação
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
-  // Listas dinâmicas para os selects
   const uniqueSits = useMemo(
     () => Array.from(new Set(cows.map((c) => c.situation).filter(Boolean))),
     [cows],
@@ -100,7 +90,6 @@ export const CowTable: React.FC<CowTableProps> = ({
     [cows],
   );
 
-  // Lógica de Filtragem Completa
   const filteredCows = useMemo(() => {
     return cows.filter((cow) => {
       const matchTag = cow.numberTag
@@ -158,7 +147,6 @@ export const CowTable: React.FC<CowTableProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Barra de Busca Rápida e Botão de Filtros Avançados */}
       <div className="bg-gray-50 p-3.5 rounded-lg border border-gray-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5 flex-1">
           <input
@@ -212,7 +200,6 @@ export const CowTable: React.FC<CowTableProps> = ({
         </div>
       </div>
 
-      {/* Painel Retrátil de Filtros Avançados */}
       {showAdvancedFilters && (
         <div className="bg-emerald-50/60 p-4 rounded-lg border border-emerald-200 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 animate-fadeIn">
           <div>
@@ -230,11 +217,7 @@ export const CowTable: React.FC<CowTableProps> = ({
               <option value="">Todas as Situações</option>
               {uniqueSits.map((sit) => (
                 <option key={sit} value={sit}>
-                  {sit === "L"
-                    ? "L (Lactação)"
-                    : sit === "S"
-                      ? "S (Seca)"
-                      : sit}
+                  {sit === "L" ? "L (Lactação)" : sit === "S" ? "S (Seca)" : sit}
                 </option>
               ))}
             </select>
@@ -273,7 +256,7 @@ export const CowTable: React.FC<CowTableProps> = ({
               }}
               className="w-full text-xs border border-emerald-300 rounded-lg px-2.5 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
-              <option value="">Todos as Categorias</option>
+              <option value="">Todas as Categorias</option>
               {uniqueGSs.map((gs) => (
                 <option key={gs} value={gs}>
                   {gs}
@@ -305,7 +288,6 @@ export const CowTable: React.FC<CowTableProps> = ({
         </div>
       )}
 
-      {/* Tabela Principal */}
       <div className="w-full shadow-md sm:rounded-lg border border-gray-200 bg-white overflow-hidden">
         <div className="relative w-full overflow-x-auto xl:overflow-x-visible">
           <table className="w-full text-left text-xs text-gray-700 table-auto border-collapse">
@@ -338,9 +320,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
                   Nº IA
                 </th>
-                <th className="px-1.5 py-2.5 text-center bg-emerald-800">
-                  Cios
-                </th>
+                {/* CAMPO CIOS REMOVIDO DA TABELA */}
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
                   DEL
                 </th>
@@ -362,7 +342,7 @@ export const CowTable: React.FC<CowTableProps> = ({
             <tbody className="divide-y divide-gray-200">
               {paginatedCows.length === 0 ? (
                 <tr>
-                  <td colSpan={26} className="py-8 text-center text-gray-400">
+                  <td colSpan={25} className="py-8 text-center text-gray-400">
                     Nenhum animal encontrado com os filtros informados.
                   </td>
                 </tr>
@@ -371,7 +351,6 @@ export const CowTable: React.FC<CowTableProps> = ({
                   const displayGS = cow.categoryGS || "-";
                   const dgStatus = getLatestDGStatus(cow);
 
-                  // Define a cor do badge de acordo com o status atual do DG (incluindo PEV em roxo)
                   let dgBadgeStyle = "bg-amber-100 text-amber-800";
                   if (dgStatus === "DG+") {
                     dgBadgeStyle = "bg-green-100 text-green-800";
@@ -381,7 +360,6 @@ export const CowTable: React.FC<CowTableProps> = ({
                     dgBadgeStyle = "bg-purple-100 text-purple-800";
                   }
 
-                  // Verifica se realmente possui IA lançada/histórico
                   const hasRealInsem = 
                     (cow.inseminationNumber && cow.inseminationNumber > 0 && (cow.lastInseminationDate || (cow.inseminationHistory && cow.inseminationHistory.length > 0))) ||
                     (cow.inseminationHistory && cow.inseminationHistory.length > 0);
@@ -486,9 +464,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-1.5 py-2 text-center font-semibold whitespace-nowrap">
                         {hasRealInsem ? cow.inseminationNumber : "-"}
                       </td>
-                      <td className="px-1.5 py-2 text-center whitespace-nowrap">
-                        {cow.heatsCount}
-                      </td>
+                      {/* CELULA DE CIOS REMOVIDA DA TABELA */}
                       <td className="px-1.5 py-2 text-center font-bold text-emerald-700 whitespace-nowrap">
                         {cow.del}
                       </td>
@@ -504,7 +480,7 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-1.5 py-2 text-center whitespace-nowrap">
                         {cow.expectedIp}
                       </td>
-                     <td className="px-2 py-2 whitespace-nowrap">
+                      <td className="px-2 py-2 whitespace-nowrap">
                         {(() => {
                           const latestInsem = cow.inseminationHistory?.[0];
                           const isPositive = latestInsem && (
@@ -539,7 +515,6 @@ export const CowTable: React.FC<CowTableProps> = ({
         </div>
       </div>
 
-      {/* Paginação */}
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-2 text-xs text-gray-600">
         <div className="flex items-center gap-2">
           <span>Total: {filteredCows.length} registros filtrados</span>

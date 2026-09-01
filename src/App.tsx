@@ -15,11 +15,11 @@ import { ReproductionGauges } from "./components/ReproductionGauges";
 import { GeneralSituationDashboard } from "./components/GeneralSituationDashboard";
 
 export function App() {
-  const getCategoryCS = (iosCount: number) => {
-    if (iosCount <= 0) return "Nulípara";
-    if (iosCount === 1) return "Primípara";
-    return "Multípara";
-  };
+  // const getCategoryCS = (offspringCount: number) => {
+  //   if (offspringCount <= 0) return "Nulípara";
+  //   if (offspringCount === 1) return "Primípara";
+  //   return "Multípara";
+  // };
 
   const calculateEffectiveInsemNumber = (
     history: any[],
@@ -86,7 +86,6 @@ export function App() {
           ...calculated,
           inseminationNumber: effectiveInsemNum,
           heatsCount: effectiveHeatsCount,
-          categoryGS: getCategoryCS(effectiveInsemNum),
         };
       });
     }
@@ -150,8 +149,6 @@ export function App() {
       }
     }
 
-    const iosCount = cowData.inseminationNumber ?? 0;
-    const computedCategory = getCategoryCS(iosCount);
 
     if (cowToEdit) {
       const updatedCow: Cow = {
@@ -164,7 +161,6 @@ export function App() {
         lastInseminationDate: cowData.lastInseminationDate || "",
         lastHeatDate: cowData.lastHeatDate || "",
         numberTag: cowData.numberTag || "",
-        categoryGS: computedCategory,
         bull: cowData.bull || "",
         dryingDate: cowData.dryingDate || "",
         observations: cowData.observations || "",
@@ -182,7 +178,6 @@ export function App() {
         farmID: currentFarmId,
         order: nextOrder,
         numberTag: cowData.numberTag || "",
-        categoryGS: computedCategory,
         firstHeatDate: cowData.firstHeatDate || "",
         firstInseminationDate: cowData.firstInseminationDate || "",
         previousCalvingDate: cowData.previousCalvingDate || "",
@@ -199,7 +194,11 @@ export function App() {
     }
   };
 
-  const handleSaveCalving = (cowId: number, newCalvingDate: string, offspringCount: number) => {
+  const handleSaveCalving = (
+    cowId: number,
+    newCalvingDate: string,
+    offspringCount: number,
+  ) => {
     setCows(
       cows.map((cow) => {
         if (cow.id === cowId) {
@@ -230,10 +229,10 @@ export function App() {
           const calculated = calculateReproductionFields({
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            lastInseminationDate: "", 
-            firstInseminationDate: "", 
+            lastInseminationDate: "",
+            firstInseminationDate: "",
             firstHeatDate: "",
-            inseminationNumber: 0, 
+            inseminationNumber: 0,
           });
 
           return {
@@ -246,7 +245,7 @@ export function App() {
             firstInseminationDate: "",
             firstHeatDate: "",
             inseminationNumber: 0,
-            bull: "", 
+            bull: "",
             inseminationHistory: updatedHistory,
             calvingHistory: [previousState, ...(cow.calvingHistory || [])],
           };
@@ -256,7 +255,7 @@ export function App() {
     );
   };
 
- const handleDeleteCalving = (cowId: number, dateToDelete?: string) => {
+  const handleDeleteCalving = (cowId: number, dateToDelete?: string) => {
     setCows(
       cows.map((cow) => {
         if (cow.id === cowId) {
@@ -264,9 +263,15 @@ export function App() {
           const updatedHistory = (cow.inseminationHistory || []).filter(
             (item: any) => {
               if (!item.isCalvingRecord) return true;
-              const itemDate = (item.date || item.lastInseminationDate || "").split("T")[0];
-              return dateToDelete ? itemDate !== dateToDelete.split("T")[0] : false;
-            }
+              const itemDate = (
+                item.date ||
+                item.lastInseminationDate ||
+                ""
+              ).split("T")[0];
+              return dateToDelete
+                ? itemDate !== dateToDelete.split("T")[0]
+                : false;
+            },
           );
 
           // 2. Restaura o parto anterior salvo no histórico de partos (se houver)
@@ -283,35 +288,44 @@ export function App() {
           // 3. Atualiza o número de crias com base no parto remanescente mais recente
           const remainingCalvingRecords = updatedHistory
             .filter((item: any) => item.isCalvingRecord)
-            .sort((a: any, b: any) => new Date(b.date || b.lastInseminationDate).getTime() - new Date(a.date || a.lastInseminationDate).getTime());
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.date || b.lastInseminationDate).getTime() -
+                new Date(a.date || a.lastInseminationDate).getTime(),
+            );
 
-          const newOffspringCount = remainingCalvingRecords.length > 0
-            ? (remainingCalvingRecords[0].offspringCount || 1)
-            : 0;
+          const newOffspringCount =
+            remainingCalvingRecords.length > 0
+              ? remainingCalvingRecords[0].offspringCount || 1
+              : 0;
 
           // 4. Identifica a última IA/Cobertura ativa que sobrou no histórico
           const activeInseminations = updatedHistory
             .filter((item: any) => !item.isCalvingRecord)
-            .sort((a: any, b: any) => 
-              new Date(b.date || b.lastInseminationDate).getTime() - new Date(a.date || a.lastInseminationDate).getTime()
+            .sort(
+              (a: any, b: any) =>
+                new Date(b.date || b.lastInseminationDate).getTime() -
+                new Date(a.date || a.lastInseminationDate).getTime(),
             );
 
           const latestActiveInsem = activeInseminations[0] || null;
 
           const effectiveInsemNumber = calculateEffectiveInsemNumber(
             updatedHistory,
-            activeInseminations.length
+            activeInseminations.length,
           );
-          const effectiveHeatsCount = calculateEffectiveHeatsCount(updatedHistory);
-          const newCategoryGS = getCategoryCS(effectiveInsemNumber);
+          const effectiveHeatsCount =
+            calculateEffectiveHeatsCount(updatedHistory);
 
           const isLatestPositive =
             latestActiveInsem &&
             (latestActiveInsem.successStatus === "DG+" ||
-             latestActiveInsem.successStatus === "Prenhe / Sucesso");
+              latestActiveInsem.successStatus === "Prenhe / Sucesso");
 
-          const determinedLastInsemDate = latestActiveInsem 
-            ? (latestActiveInsem.lastInseminationDate || latestActiveInsem.date || "") 
+          const determinedLastInsemDate = latestActiveInsem
+            ? latestActiveInsem.lastInseminationDate ||
+              latestActiveInsem.date ||
+              ""
             : "";
 
           // 5. Recalcula os campos reprodutivos passando explicitamente uma string vazia se não houver data
@@ -327,15 +341,16 @@ export function App() {
           return {
             ...cow,
             ...calculated,
-            expectedCalvingDate: isLatestPositive ? calculated.expectedCalvingDate : "",
+            expectedCalvingDate: isLatestPositive
+              ? calculated.expectedCalvingDate
+              : "",
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
             offspringCount: newOffspringCount,
             lastInseminationDate: determinedLastInsemDate,
-            bull: latestActiveInsem ? (latestActiveInsem.bull || "") : "",
+            bull: latestActiveInsem ? latestActiveInsem.bull || "" : "",
             inseminationNumber: effectiveInsemNumber,
             heatsCount: effectiveHeatsCount,
-            categoryGS: newCategoryGS,
             inseminationHistory: updatedHistory,
             calvingHistory: remainingCalvingHistory,
           };
@@ -421,7 +436,7 @@ export function App() {
           );
           const effectiveHeatsCount =
             calculateEffectiveHeatsCount(updatedHistory);
-          const newCategoryGS = getCategoryCS(effectiveInsemNumber);
+          
 
           const firstInseminationDate =
             cow.firstInseminationDate || insemData.lastInseminationDate;
@@ -444,7 +459,6 @@ export function App() {
             bull: insemData.bull,
             inseminationNumber: effectiveInsemNumber,
             heatsCount: effectiveHeatsCount,
-            categoryGS: newCategoryGS,
             firstInseminationDate,
             firstHeatDate,
             inseminationHistory: updatedHistory,
@@ -476,7 +490,7 @@ export function App() {
       sorted.length,
     );
     const effectiveHeatsCount = calculateEffectiveHeatsCount(sorted);
-    const newCategoryGS = getCategoryCS(effectiveInsemNumber);
+    
 
     setCows(
       cows.map((cow) => {
@@ -506,7 +520,6 @@ export function App() {
             bull: latestInsemination ? latestInsemination.bull : "",
             inseminationNumber: effectiveInsemNumber,
             heatsCount: effectiveHeatsCount,
-            categoryGS: newCategoryGS,
             inseminationHistory: sorted,
           };
         }

@@ -15,7 +15,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     numberTag: '',
     name: '',
     situation: 'L' as string,
-    categoryGS: 'Nulípara',
+    categoryGS: 'Nulípara' as string,
     offspringCount: 0,
     gender: 'F' as string,
     currentCalvingDate: '',
@@ -40,21 +40,13 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
 
   const [error, setError] = useState('');
 
-  // Função auxiliar para determinar o CS com base nos cios / nº de IA
-  const determineCS = (count: number) => {
-    if (count === 0) return 'Nulípara';
-    if (count === 1) return 'Primípara';
-    return 'Multípara';
-  };
-
   useEffect(() => {
     if (cowToEdit) {
-      const currentCios = cowToEdit.heatsCount ?? cowToEdit.inseminationNumber ?? 0;
       setFormData({
         numberTag: cowToEdit.numberTag || '',
         name: cowToEdit.name || '',
         situation: cowToEdit.situation || 'L',
-        categoryGS: cowToEdit.categoryGS || determineCS(currentCios),
+        categoryGS: cowToEdit.categoryGS || 'Nulípara',
         offspringCount: cowToEdit.offspringCount || 0,
         gender: cowToEdit.gender || 'F',
         currentCalvingDate: cowToEdit.currentCalvingDate || '',
@@ -64,7 +56,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         lastInseminationDate: cowToEdit.lastInseminationDate || '',
         lastHeatDate: cowToEdit.lastHeatDate || '',
         inseminationNumber: cowToEdit.inseminationNumber || 0,
-        heatsCount: cowToEdit.heatsCount ?? cowToEdit.inseminationNumber ?? 0,
+        heatsCount: cowToEdit.heatsCount || 0,
         bull: cowToEdit.bull || '',
         diagnosisStatus: cowToEdit.diagnosisStatus || 'DG+',
         dryingDate: cowToEdit.dryingDate || '',
@@ -107,16 +99,6 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     setError('');
   }, [cowToEdit, isOpen]);
 
-  const handleCiosChange = (value: number) => {
-    const autoCategory = determineCS(value);
-    setFormData({
-      ...formData,
-      inseminationNumber: value,
-      heatsCount: value,
-      categoryGS: autoCategory
-    });
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -146,8 +128,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
 
     onSave({ 
       ...formData, 
-      ...calculated,
-      categoryGS: determineCS(formData.heatsCount)
+      ...calculated
     });
     onClose();
   };
@@ -193,13 +174,13 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Categoria (CS)</label>
             <select 
-              className="w-full p-2 border rounded bg-gray-100 cursor-not-allowed font-semibold text-emerald-800" 
+              className="w-full p-2 border rounded bg-white font-semibold text-emerald-800 focus:outline-none focus:ring-1 focus:ring-emerald-500" 
               value={formData.categoryGS} 
-              disabled
+              onChange={e => setFormData({...formData, categoryGS: e.target.value})}
             >
-              <option value="Nulípara">Nulípara (0 cios)</option>
-              <option value="Primípara">Primípara (1 cio)</option>
-              <option value="Multípara">Multípara (2+ cios)</option>
+              <option value="Nulípara">Nulípara</option>
+              <option value="Primípara">Primípara</option>
+              <option value="Multípara">Multípara</option>
             </select>
           </div>
           <div>
@@ -247,26 +228,26 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Nº de IAs</label>
-            <input type="number" className="w-full p-2 border rounded" value={formData.heatsCount} onChange={e => handleCiosChange(Number(e.target.value))} />
+            <input type="number" className="w-full p-2 border rounded" value={formData.inseminationNumber} onChange={e => setFormData({...formData, inseminationNumber: Number(e.target.value)})} />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-gray-600 mbt-1">Touro</label>
-            <input type="text" className="w-full p-2 border rounded mt-1" value={formData.bull} onChange={e => setFormData({...formData, bull: e.target.value})} placeholder="Ex: JACK DANIELS" />
+            <label className="block text-xs font-semibold text-gray-600 mb-1">Touro</label>
+            <input type="text" className="w-full p-2 border rounded" value={formData.bull} onChange={e => setFormData({...formData, bull: e.target.value})} placeholder="Ex: JACK DANIELS" />
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Status DG</label>
-            <select className="w-full p-2 border rounded mt-1" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value})}>
+            <select className="w-full p-2 border rounded" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value})}>
               <option value="">Nenhum</option>
               <option value="DG+">DG+</option>
               <option value="DG-">DG-</option>
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Data Secar</label>
             <input type="date" className="w-full p-2 border rounded" value={formData.dryingDate} onChange={e => setFormData({...formData, dryingDate: e.target.value})} />
