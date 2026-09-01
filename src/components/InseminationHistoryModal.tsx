@@ -24,7 +24,6 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   const getItemBull = (item: any, fallbackCowBull?: string) => {
     if (!item) return fallbackCowBull || '-';
     
-    // Adicionado 'PEV' à lista de valores inválidos para o nome do touro
     const invalidValues = ['Prenhe / Sucesso', 'Vazia / Falha', 'Pendente', 'DG+', 'DG-', 'PEV', 'Pendente / Sem Diagnóstico'];
     
     const directMatch = item.bull || item.touro || item.sire || item.reprodutor || item.bullName;
@@ -64,7 +63,7 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
           id: item.id || `ins-${idx}-${Date.now()}`,
           date: resolvedDate,
           lastInseminationDate: resolvedDate,
-          bull: getItemBull(item, cow.bull),
+          bull: item.isCalvingRecord || item.successStatus === 'PEV' ? '' : getItemBull(item, cow.bull),
           successStatus: getItemSuccess(item)
         };
       });
@@ -104,6 +103,13 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
   };
 
   const handleDelete = (indexToDelete: number) => {
+    const itemToDelete = history[indexToDelete];
+
+    if (itemToDelete?.isCalvingRecord) {
+      alert("Este registro de PEV está vinculado a um parto. Para removê-lo, exclua ou altere o lançamento do parto correspondente.");
+      return;
+    }
+
     if (window.confirm('Tem certeza que deseja excluir este registro de Inseminação?')) {
       const updated = history.filter((_, i) => i !== indexToDelete);
       saveAndSync(updated);
@@ -115,8 +121,6 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
       if (i === indexToToggle) {
         const currentFullStatus = getItemSuccess(item);
         
-        // Ciclo de alternância atualizado incluindo o PEV:
-        // Pendente ➔ DG+ (Prenhe / Sucesso) ➔ DG- (Vazia / Falha) ➔ PEV ➔ Pendente
         let nextFullStatus = 'Pendente';
         if (currentFullStatus === 'Pendente' || currentFullStatus === 'Pendente / Sem Diagnóstico') {
           nextFullStatus = 'Prenhe / Sucesso';
@@ -180,10 +184,11 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
           <p className="text-gray-500 text-center py-6 text-xs">Nenhum registro de inseminação encontrado.</p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
-            {history.map((item, index) => {
+            {history.map((item: any, index: number) => {
               const currentDate = getItemDate(item);
               const currentBull = getItemBull(item, cow.bull);
               const fullStatus = getItemSuccess(item);
+              const isCalvingPev = item.isCalvingRecord || fullStatus === 'PEV';
               
               let displayStatus = 'Pendente';
               let badgeColor = 'bg-amber-100 text-amber-800 hover:bg-amber-200';
@@ -211,26 +216,31 @@ export function InseminationHistoryModal({ isOpen, onClose, cow, onUpdateHistory
                           onChange={(e) => setEditDate(e.target.value)}
                           className="p-1 border rounded text-xs"
                         />
-                        <input
-                          type="text"
-                          value={editBull}
-                          onChange={(e) => setEditBull(e.target.value)}
-                          placeholder="Touro"
-                          className="p-1 border rounded text-xs w-24"
-                        />
+                        {!isCalvingPev && (
+                          <input
+                            type="text"
+                            value={editBull}
+                            onChange={(e) => setEditBull(e.target.value)}
+                            placeholder="Touro"
+                            className="p-1 border rounded text-xs w-24"
+                          />
+                        )}
                       </div>
                     ) : (
                       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                         <span className="font-semibold text-gray-800">
                           Data: {currentDate ? new Date(currentDate + 'T00:00:00').toLocaleDateString('pt-BR') : 'Não informada'}
                         </span>
-                        <span className="text-indigo-700 font-medium">Touro: {currentBull}</span>
+                        
+                        {!isCalvingPev && (
+                          <span className="text-indigo-700 font-medium">Touro: {currentBull}</span>
+                        )}
                         
                         <button
                           type="button"
                           onClick={() => handleToggleStatus(index)}
-                          title="Clique para alternar o status (Pendente ➔ DG+ ➔ DG- ➔ PEV)"
-                          className={`px-2 py-0.5 rounded font-bold text-[10px] transition-colors cursor-pointer shadow-sm ${badgeColor}`}
+                          title="Clique para alternar o status"
+                          className={`px-2 py-0.5 rounded font-bold text-[10px] shadow-sm cursor-pointer ${badgeColor}`}
                         >
                           {displayStatus}
                         </button>

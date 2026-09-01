@@ -18,11 +18,32 @@ const formatDate = (dateString?: string | null) => {
   return `${day}/${month}/${year}`;
 };
 
-// Função auxiliar atualizada para mapear o status do DG (incluindo PEV)
+// Função auxiliar atualizada e sem erros de escopo
 const getLatestDGStatus = (cow: Cow) => {
-  // 1. Se houver histórico de inseminação, avalia o status dele
-  if (cow.inseminationHistory && cow.inseminationHistory.length > 0) {
-    const latest = cow.inseminationHistory[0];
+  const latest = cow.inseminationHistory?.[0];
+
+  // 1. Verifica se existe parto atual para contar os 30 dias de PEV
+  if (cow.currentCalvingDate) {
+    const calvingDate = new Date(cow.currentCalvingDate);
+    const today = new Date();
+    const diffTime = today.getTime() - calvingDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    // Se estiver dentro dos primeiros 30 dias E não houver uma IA posterior ao parto
+    if (diffDays >= 0 && diffDays <= 30) {
+      if (!latest || new Date(latest.date || 0) < calvingDate || latest.successStatus === "PEV") {
+        return "PEV";
+      }
+    } else if (diffDays > 30) {
+      // Se já passaram mais de 30 dias do parto:
+      if (!latest || new Date(latest.date || 0) < calvingDate || latest.successStatus === "PEV") {
+        return "Pendente";
+      }
+    }
+  }
+
+  // 2. Avalia o histórico normal de IA caso já tenha movimentações posteriores
+  if (cow.inseminationHistory && cow.inseminationHistory.length > 0 && latest) {
     const status = latest.successStatus;
     if (status === "Prenhe / Sucesso" || status === "DG+") return "DG+";
     if (status === "Vazia / Falha" || status === "DG-") return "DG-";
@@ -30,7 +51,7 @@ const getLatestDGStatus = (cow: Cow) => {
     return "Pendente";
   }
 
-  // 2. Se não tem histórico de IA, força o status para 'Pendente'
+  // 3. Padrão se não houver dados
   return "Pendente";
 };
 

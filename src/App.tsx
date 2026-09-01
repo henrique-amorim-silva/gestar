@@ -217,6 +217,74 @@ export function App() {
             cow.currentCalvingDate || cow.previousCalvingDate;
           const updatedCurrentCalving = newCalvingDate;
 
+          // Cria um registro automático de PEV (Período de Espera Voluntário) para iniciar o novo ciclo
+          const pevRecord = {
+            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+            date: newCalvingDate,
+            lastInseminationDate: newCalvingDate,
+            bull: "",
+            successStatus: "PEV",
+            inseminationNumber: 0,
+            isCalvingRecord: true, // <-- Identifica que veio de um parto
+          };
+
+          const existingHistory = cow.inseminationHistory || [];
+          const updatedHistory = [pevRecord, ...existingHistory];
+
+          const calculated = calculateReproductionFields({
+            currentCalvingDate: updatedCurrentCalving,
+            previousCalvingDate: updatedPreviousCalving,
+            lastInseminationDate: "", // Reseta a última IA do novo ciclo
+            firstInseminationDate: "", // Reseta a 1ª IA do novo ciclo
+            firstHeatDate: "",
+            inseminationNumber: 0, // Zera o contador de IAs do novo ciclo
+          });
+
+          return {
+            ...cow,
+            ...calculated,
+            currentCalvingDate: updatedCurrentCalving,
+            previousCalvingDate: updatedPreviousCalving,
+            // Campos do ciclo atual limpos conforme solicitado:
+            lastInseminationDate: "",
+            firstInseminationDate: "",
+            firstHeatDate: "",
+            inseminationNumber: 0,
+            bull: "", // Retira o nome do touro
+            inseminationHistory: updatedHistory,
+            calvingHistory: [previousState, ...(cow.calvingHistory || [])],
+          };
+        }
+        return cow;
+      }),
+    );
+  };
+
+ const handleDeleteCalving = (cowId: number, dateToDelete?: string) => {
+    setCows(
+      cows.map((cow) => {
+        if (cow.id === cowId) {
+          // Remove apenas o registro de PEV cuja data corresponda exatamente ao parto excluído
+          const updatedHistory = (cow.inseminationHistory || []).filter(
+            (item: any) => {
+              if (!item.isCalvingRecord) return true; // Mantém as IAs normais intactas
+              const itemDate = (item.date || item.lastInseminationDate || "").split("T")[0];
+              // Se tivermos a data específica, remove apenas se bater a data. Senão, mantém.
+              return dateToDelete ? itemDate !== dateToDelete.split("T")[0] : false;
+            }
+          );
+
+          // Restaura o parto anterior se houver histórico de partos salvos
+          const previousCalving = cow.calvingHistory?.[0] || null;
+          const remainingCalvingHistory = (cow.calvingHistory || []).slice(1);
+
+          const updatedCurrentCalving = previousCalving
+            ? previousCalving.currentCalvingDate
+            : "";
+          const updatedPreviousCalving = previousCalving
+            ? previousCalving.previousCalvingDate
+            : "";
+
           const calculated = calculateReproductionFields({
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
@@ -231,7 +299,17 @@ export function App() {
             ...calculated,
             currentCalvingDate: updatedCurrentCalving,
             previousCalvingDate: updatedPreviousCalving,
-            calvingHistory: [previousState, ...(cow.calvingHistory || [])],
+            inseminationHistory: updatedHistory,
+            calvingHistory: remainingCalvingHistory,
+            ...(updatedHistory.length === 0
+              ? {
+                  lastInseminationDate: "",
+                  firstInseminationDate: "",
+                  firstHeatDate: "",
+                  inseminationNumber: 0,
+                  bull: "",
+                }
+              : {}),
           };
         }
         return cow;
@@ -537,6 +615,7 @@ export function App() {
           onClose={() => setIsCalvingHistoryModalOpen(false)}
           cow={cowForCalvingHistory}
           onUpdateHistory={handleUpdateCalvingHistory}
+          onDeleteCalving={handleDeleteCalving}
         />
         <InseminationHistoryModal
           isOpen={isInseminationHistoryModalOpen}

@@ -12,6 +12,7 @@ export interface InseminationRecord {
   firstInseminationDate?: string;
   firstHeatDate?: string;
   successStatus?: string;
+  isCalvingRecord?: boolean;
 }
 
 export interface CalvingRecord {
