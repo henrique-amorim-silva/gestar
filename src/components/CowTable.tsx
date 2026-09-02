@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import type { Cow } from "../types/cow";
 import { generateReportHtml } from "../utils/reportTemplate";
+import { VisitReportModal } from "./VisitReportModal";
 
 interface CowTableProps {
   cows: Cow[];
@@ -78,6 +79,9 @@ export const CowTable: React.FC<CowTableProps> = ({
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState<number | "all">(10);
+
+  // Estado para controlar a abertura do modal de Visita Técnica
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
 
   const uniqueSits = useMemo(
     () => Array.from(new Set(cows.map((c) => c.situation).filter(Boolean))),
@@ -158,8 +162,7 @@ export const CowTable: React.FC<CowTableProps> = ({
     setCurrentPage(1);
   };
 
-  // Função para imprimir/gerar PDF somente dos itens filtrados
-   const handlePrint = () => {
+  const handlePrint = () => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       alert("Por favor, permita pop-ups para gerar a impressão.");
@@ -235,6 +238,15 @@ export const CowTable: React.FC<CowTableProps> = ({
             title="Imprimir ou gerar PDF dos itens filtrados"
           >
             <span>🖨️ Imprimir / PDF</span>
+          </button>
+
+          {/* Botão de Relatório de Visita Técnica */}
+          <button
+            onClick={() => setIsVisitModalOpen(true)}
+            className="text-xs font-bold text-white bg-blue-700 hover:bg-blue-800 px-3.5 py-2 rounded-lg shadow-sm transition-colors flex items-center gap-1.5"
+            title="Abrir relatório de visita técnica"
+          >
+            <span>📋 Relatório de Visita</span>
           </button>
         </div>
 
@@ -617,6 +629,14 @@ export const CowTable: React.FC<CowTableProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Modal de Relatório de Visita Técnica */}
+      {isVisitModalOpen && (
+        <VisitReportModal 
+          cows={cows} 
+          onClose={() => setIsVisitModalOpen(false)} 
+        />
+      )}
     </div>
   );
 };
