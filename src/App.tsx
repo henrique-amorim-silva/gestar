@@ -15,13 +15,8 @@ import { ReproductionGauges } from "./components/ReproductionGauges";
 import { GeneralSituationDashboard } from "./components/GeneralSituationDashboard";
 
 export function App() {
-  // const getCategoryCS = (offspringCount: number) => {
-  //   if (offspringCount <= 0) return "Nulípara";
-  //   if (offspringCount === 1) return "Primípara";
-  //   return "Multípara";
-  // };
-
-  const calculateEffectiveInsemNumber = (
+  
+   const calculateEffectiveInsemNumber = (
     history: any[],
     currentInsemNum: number,
   ) => {

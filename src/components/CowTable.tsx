@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import type { Cow } from "../types/cow";
+import { generateReportHtml } from "../utils/reportTemplate";
 
 interface CowTableProps {
   cows: Cow[];
@@ -28,11 +29,19 @@ const getLatestDGStatus = (cow: Cow) => {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays >= 0 && diffDays <= 30) {
-      if (!latest || new Date(latest.date || 0) < calvingDate || latest.successStatus === "PEV") {
+      if (
+        !latest ||
+        new Date(latest.date || 0) < calvingDate ||
+        latest.successStatus === "PEV"
+      ) {
         return "PEV";
       }
     } else if (diffDays > 30) {
-      if (!latest || new Date(latest.date || 0) < calvingDate || latest.successStatus === "PEV") {
+      if (
+        !latest ||
+        new Date(latest.date || 0) < calvingDate ||
+        latest.successStatus === "PEV"
+      ) {
         return "Pendente";
       }
     }
@@ -68,7 +77,7 @@ export const CowTable: React.FC<CowTableProps> = ({
   const [advancedBull, setAdvancedBull] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [itemsPerPage, setItemsPerPage] = useState<number | "all">(10);
 
   const uniqueSits = useMemo(
     () => Array.from(new Set(cows.map((c) => c.situation).filter(Boolean))),
@@ -121,9 +130,13 @@ export const CowTable: React.FC<CowTableProps> = ({
     advancedBull,
   ]);
 
-  const totalPages = Math.ceil(filteredCows.length / itemsPerPage);
+  const totalPages =
+    itemsPerPage === "all" ? 1 : Math.ceil(filteredCows.length / itemsPerPage);
 
   const paginatedCows = useMemo(() => {
+    if (itemsPerPage === "all") {
+      return filteredCows;
+    }
     const start = (currentPage - 1) * itemsPerPage;
     return filteredCows.slice(start, start + itemsPerPage);
   }, [filteredCows, currentPage, itemsPerPage]);
@@ -143,6 +156,28 @@ export const CowTable: React.FC<CowTableProps> = ({
     setAdvancedGS("");
     setAdvancedBull("");
     setCurrentPage(1);
+  };
+
+  // Função para imprimir/gerar PDF somente dos itens filtrados
+   const handlePrint = () => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      alert("Por favor, permita pop-ups para gerar a impressão.");
+      return;
+    }
+
+    const htmlContent = generateReportHtml(
+      filteredCows,
+      getLatestDGStatus,
+      formatDate,
+    );
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 1000);
   };
 
   return (
@@ -192,6 +227,15 @@ export const CowTable: React.FC<CowTableProps> = ({
               Limpar Filtros
             </button>
           )}
+
+          {/* Botão de Impressão / PDF */}
+          <button
+            onClick={handlePrint}
+            className="text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 px-3.5 py-2 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 ml-auto md:ml-0"
+            title="Imprimir ou gerar PDF dos itens filtrados"
+          >
+            <span>🖨️ Imprimir / PDF</span>
+          </button>
         </div>
 
         <div className="text-xs text-gray-500 text-right">
@@ -217,7 +261,11 @@ export const CowTable: React.FC<CowTableProps> = ({
               <option value="">Todas as Situações</option>
               {uniqueSits.map((sit) => (
                 <option key={sit} value={sit}>
-                  {sit === "L" ? "L (Lactação)" : sit === "S" ? "S (Seca)" : sit}
+                  {sit === "L"
+                    ? "L (Lactação)"
+                    : sit === "S"
+                      ? "S (Seca)"
+                      : sit}
                 </option>
               ))}
             </select>
@@ -320,7 +368,6 @@ export const CowTable: React.FC<CowTableProps> = ({
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
                   Nº IA
                 </th>
-                {/* CAMPO CIOS REMOVIDO DA TABELA */}
                 <th className="px-1.5 py-2.5 text-center bg-emerald-800">
                   DEL
                 </th>
@@ -360,9 +407,14 @@ export const CowTable: React.FC<CowTableProps> = ({
                     dgBadgeStyle = "bg-purple-100 text-purple-800";
                   }
 
-                  const hasRealInsem = 
-                    (cow.inseminationNumber && cow.inseminationNumber > 0 && (cow.lastInseminationDate || (cow.inseminationHistory && cow.inseminationHistory.length > 0))) ||
-                    (cow.inseminationHistory && cow.inseminationHistory.length > 0);
+                  const hasRealInsem =
+                    (cow.inseminationNumber &&
+                      cow.inseminationNumber > 0 &&
+                      (cow.lastInseminationDate ||
+                        (cow.inseminationHistory &&
+                          cow.inseminationHistory.length > 0))) ||
+                    (cow.inseminationHistory &&
+                      cow.inseminationHistory.length > 0);
 
                   return (
                     <tr
@@ -464,7 +516,6 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-1.5 py-2 text-center font-semibold whitespace-nowrap">
                         {hasRealInsem ? cow.inseminationNumber : "-"}
                       </td>
-                      {/* CELULA DE CIOS REMOVIDA DA TABELA */}
                       <td className="px-1.5 py-2 text-center font-bold text-emerald-700 whitespace-nowrap">
                         {cow.del}
                       </td>
@@ -483,11 +534,13 @@ export const CowTable: React.FC<CowTableProps> = ({
                       <td className="px-2 py-2 whitespace-nowrap">
                         {(() => {
                           const latestInsem = cow.inseminationHistory?.[0];
-                          const isPositive = latestInsem && (
-                            latestInsem.successStatus === 'DG+' || 
-                            latestInsem.successStatus === 'Prenhe / Sucesso'
-                          );
-                          return isPositive ? formatDate(cow.expectedCalvingDate) : "-";
+                          const isPositive =
+                            latestInsem &&
+                            (latestInsem.successStatus === "DG+" ||
+                              latestInsem.successStatus === "Prenhe / Sucesso");
+                          return isPositive
+                            ? formatDate(cow.expectedCalvingDate)
+                            : "-";
                         })()}
                       </td>
                       <td className="px-2 py-2 font-medium text-indigo-700 whitespace-nowrap">
@@ -523,7 +576,8 @@ export const CowTable: React.FC<CowTableProps> = ({
           <select
             value={itemsPerPage}
             onChange={(e) => {
-              setItemsPerPage(Number(e.target.value));
+              const val = e.target.value;
+              setItemsPerPage(val === "all" ? "all" : Number(val));
               setCurrentPage(1);
             }}
             className="border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
@@ -531,6 +585,7 @@ export const CowTable: React.FC<CowTableProps> = ({
             <option value={10}>10</option>
             <option value={50}>50</option>
             <option value={100}>100</option>
+            <option value="all">Todos</option>
           </select>
           <span>por página</span>
         </div>
@@ -543,14 +598,18 @@ export const CowTable: React.FC<CowTableProps> = ({
           <div className="space-x-1">
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
+              disabled={currentPage === 1 || itemsPerPage === "all"}
               className="px-3 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-40"
             >
               Anterior
             </button>
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages || totalPages === 0}
+              disabled={
+                currentPage === totalPages ||
+                totalPages === 0 ||
+                itemsPerPage === "all"
+              }
               className="px-3 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-40"
             >
               Próxima
