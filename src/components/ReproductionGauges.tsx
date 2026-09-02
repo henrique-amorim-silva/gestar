@@ -11,47 +11,90 @@ export function ReproductionGauges({ cows }: ReproductionGaugesProps) {
     return null;
   }
 
-  // 1. Identifica estritamente as vacas que foram servidas (possuem data de última IA válida ou histórico)
-  const servicedCowsList = cows.filter(cow => {
-    const hasValidDate = cow.lastInseminationDate && cow.lastInseminationDate.trim() !== '' && cow.lastInseminationDate.trim() !== '-';
-    const hasHistory = cow.inseminationHistory && cow.inseminationHistory.length > 0;
-    const hasInsemNum = cow.inseminationNumber !== undefined && cow.inseminationNumber > 0;
-    return hasValidDate || hasHistory || hasInsemNum;
-  });
-
-  // Garante o denominador correto de 20 vacas servidas (ou usa o total filtrado se for o caso)
-  const servicedCount = servicedCowsList.length > 0 ? servicedCowsList.length : 20;
-  const serviceRate = totalCows > 0 ? (servicedCount / totalCows) * 100 : 0;
-
-  // 2. Identifica se a vaca está prenhe (DG+ no cadastro ou no histórico de IA)
-  const isCowPregnant = (cow: Cow) => {
-    if (cow.diagnosisStatus === 'DG+' || (cow as any).diagnosis === 'DG+') {
-      return true;
-    }
-    
-    if (cow.inseminationHistory && cow.inseminationHistory.length > 0) {
-      const latest = cow.inseminationHistory[0];
-      if (
-        latest.successStatus === 'Prenhe / Sucesso' ||
-        latest.successStatus === 'DG+' ||
-        (latest as any).status === 'DG+'
-      ) {
+  // Varre absolutamente TODAS as propriedades de cada vaca em busca de "PEV"
+  const isCowPEV = (cow: any) => {
+    if (!cow) return false;
+    return Object.values(cow).some(val => {
+      if (typeof val === 'string' && val.trim().toUpperCase() === 'PEV') {
         return true;
       }
-    }
-    return false;
+      // Se houver algum objeto aninhado ou histórico que contenha PEV
+      if (Array.isArray(val)) {
+        return val.some(item => 
+          typeof item === 'object' && item !== null && Object.values(item).some(subVal => typeof subVal === 'string' && subVal.trim().toUpperCase() === 'PEV')
+        );
+      }
+      return false;
+    });
   };
 
-  const pregnantCowsList = cows.filter(cow => isCowPregnant(cow));
-  
-  // Força o numerador exato para 5 caso a contagem encontre os registros esperados
-  const pregnantCount = pregnantCowsList.length > 0 ? pregnantCowsList.length : 5;
+  // 1. Total de vacas aptas (excluindo vacas com status PEV em qualquer propriedade)
+  const eligibleCows = cows.filter(cow => !isCowPEV(cow));
+  const totalEligible = eligibleCows.length;
 
-  // 3. Taxa de Concepção: (Vacas Prenhes ÷ Vacas Servidas) -> 5 ÷ 20 = 25%
+  // 2. Filtrar vacas aptas que foram inseminadas no ciclo atual 
+  const cowsInseminatedCurrentCycle = eligibleCows.filter(cow => {
+    const history = (cow.inseminationHistory || []) as any[];
+    
+    if (history.length === 0) {
+      if (cow.lastInseminationDate && cow.lastInseminationDate.trim() !== '' && cow.lastInseminationDate.trim() !== '-') {
+        if (!cow.currentCalvingDate) return true;
+        return new Date(cow.lastInseminationDate) > new Date(cow.currentCalvingDate);
+      }
+      return false;
+    }
+
+    const activeInsems = history.filter((item: any) => !item.isCalvingRecord);
+    if (activeInsems.length === 0) return false;
+
+    const latestInsemination = activeInsems[0];
+    const insemDate = latestInsemination.date || latestInsemination.lastInseminationDate;
+
+    if (!cow.currentCalvingDate) return true;
+
+    return new Date(insemDate) > new Date(cow.currentCalvingDate);
+  });
+
+  const servicedCount = cowsInseminatedCurrentCycle.length;
+  const serviceRate = totalEligible > 0 ? (servicedCount / totalEligible) * 100 : 0;
+
+  // 3. Identifica se a vaca está prenhe no ciclo atual de forma rigorosa
+  const isCowPregnantCurrentCycle = (cow: any) => {
+    if (isCowPEV(cow)) return false;
+
+    const rawDg = cow.diagnosisStatus || cow.diagnosis || cow.dg || '';
+    const hasPositiveDG = typeof rawDg === 'string' && (rawDg.toUpperCase().includes('DG+') || rawDg.toUpperCase().includes('PRENHE'));
+    
+    const history = (cow.inseminationHistory || []) as any[];
+    
+    if (history.length > 0) {
+      const activeInsems = history.filter((item: any) => !item.isCalvingRecord);
+      if (activeInsems.length > 0) {
+        const latest = activeInsems[0];
+        const insemDate = latest.date || latest.lastInseminationDate;
+        
+        const isCurrentCycle = !cow.currentCalvingDate || (insemDate && new Date(insemDate) > new Date(cow.currentCalvingDate));
+
+        const latestStatus = latest.successStatus || latest.status || '';
+        const isLatestPositive = typeof latestStatus === 'string' && (latestStatus.toUpperCase().includes('PRENHE') || latestStatus.toUpperCase().includes('DG+'));
+
+        if (isCurrentCycle && isLatestPositive) {
+          return true;
+        }
+      }
+    }
+
+    return hasPositiveDG;
+  };
+
+  const pregnantCowsList = eligibleCows.filter(cow => isCowPregnantCurrentCycle(cow));
+  const pregnantCount = pregnantCowsList.length;
+
+  // 4. Taxa de Concepção: (Vacas Prenhes no ciclo ÷ Vacas Servidas no ciclo) * 100
   const conceptionRate = servicedCount > 0 ? (pregnantCount / servicedCount) * 100 : 0;
 
-  // 4. Taxa de Prenhez: (Vacas Prenhes ÷ Total Geral do Rebanho)
-  const pregnancyRate = totalCows > 0 ? (pregnantCount / totalCows) * 100 : 0;
+  // 5. Taxa de Prenhez: (Vacas Prenhes no ciclo ÷ Total Geral de Vacas Aptas) * 100
+  const pregnancyRate = totalEligible > 0 ? (pregnantCount / totalEligible) * 100 : 0;
 
   // Sub-componente do medidor visual
   const GaugeCard = ({ title, percentage }: { title: string; percentage: number }) => {

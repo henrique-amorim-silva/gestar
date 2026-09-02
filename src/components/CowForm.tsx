@@ -27,7 +27,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
     inseminationNumber: 0,
     heatsCount: 0,
     bull: '',
-    diagnosisStatus: 'DG+' as string,
+    diagnosisStatus: 'Pendente' as string, // Padrão inicial como Pendente
     dryingDate: '',
     observations: '',
     del: 0,
@@ -58,7 +58,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         inseminationNumber: cowToEdit.inseminationNumber || 0,
         heatsCount: cowToEdit.heatsCount || 0,
         bull: cowToEdit.bull || '',
-        diagnosisStatus: cowToEdit.diagnosisStatus || 'DG+',
+        diagnosisStatus: cowToEdit.diagnosisStatus || 'Pendente',
         dryingDate: cowToEdit.dryingDate || '',
         observations: cowToEdit.observations || '',
         del: cowToEdit.del || 0,
@@ -85,7 +85,7 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
         inseminationNumber: 0,
         heatsCount: 0,
         bull: '',
-        diagnosisStatus: 'DG+',
+        diagnosisStatus: 'Pendente', // Padrão para novas vacas
         dryingDate: '',
         observations: '',
         del: 0,
@@ -243,9 +243,10 @@ export function CowForm({ isOpen, onClose, onSave, cowToEdit, cows }: CowFormPro
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1">Status DG</label>
             <select className="w-full p-2 border rounded" value={formData.diagnosisStatus} onChange={e => setFormData({...formData, diagnosisStatus: e.target.value})}>
-              <option value="">Nenhum</option>
+              <option value="Pendente">Pendente</option>
               <option value="DG+">DG+</option>
               <option value="DG-">DG-</option>
+              <option value="PEV">PEV</option>
             </select>
           </div>
           <div>
