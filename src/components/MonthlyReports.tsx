@@ -1,9 +1,12 @@
+import { useState } from "react";
+
 export interface MonthlyReport {
   month: string;
   milkProduction: number;
   additionalCcs: number;
   additionalCbt: number;
-  source: string;
+  observation?: string;
+  source?: string;
 }
 
 interface MonthlyReportsProps {
@@ -19,7 +22,13 @@ const monthFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 function formatMonth(month: string) {
-  return monthFormatter.format(new Date(`${month}-01T00:00:00Z`));
+  const parts = monthFormatter.formatToParts(
+    new Date(`${month}-01T00:00:00Z`),
+  );
+  return parts
+    .filter((part) => part.type === "month" || part.type === "year")
+    .map((part) => part.value)
+    .join(" ");
 }
 
 function getNiceTickStep(range: number, tickCount: number) {
@@ -183,7 +192,16 @@ function MonthlyLineChart({
 }
 
 export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsProps) {
-  const sortedReports = [...reports].sort((a, b) => a.month.localeCompare(b.month));
+  const [periodStart, setPeriodStart] = useState("");
+  const [periodEnd, setPeriodEnd] = useState("");
+  const filteredReports = [...reports]
+    .filter(
+      (report) =>
+        (!periodStart || report.month >= periodStart) &&
+        (!periodEnd || report.month <= periodEnd),
+    )
+    .sort((a, b) => a.month.localeCompare(b.month));
+  const printScale = Math.min(1, 20 / Math.max(filteredReports.length, 20));
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -193,7 +211,7 @@ export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsPr
       milkProduction: Number(formData.get("milkProduction")),
       additionalCcs: Number(formData.get("additionalCcs")),
       additionalCbt: Number(formData.get("additionalCbt")),
-      source: String(formData.get("source") || "").trim(),
+      observation: String(formData.get("observation") || "").trim(),
     };
     onChange([...reports.filter((item) => item.month !== report.month), report]);
     event.currentTarget.reset();
@@ -203,7 +221,10 @@ export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsPr
     "mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-600 focus:outline-none focus:ring-1 focus:ring-emerald-500";
 
   return (
-    <main className="monthly-reports space-y-5">
+    <main
+      className="monthly-reports space-y-5"
+      style={{ "--report-print-scale": printScale } as React.CSSProperties}
+    >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-800">Relatórios mensais</h1>
@@ -238,8 +259,8 @@ export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsPr
             <input name="additionalCbt" type="number" min="0" step="1" required className={numberInputClass} />
           </label>
           <label className="text-xs font-semibold text-gray-600">
-            Arquivo / origem
-            <input name="source" type="text" maxLength={120} placeholder="Ex.: relatório de agosto" className={numberInputClass} />
+            Observação
+            <input name="observation" type="text" maxLength={120} placeholder="Ex.: coleta realizada no dia 5" className={numberInputClass} />
           </label>
         </div>
         <button type="submit" className="mt-4 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-emerald-800">
@@ -247,10 +268,45 @@ export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsPr
         </button>
       </form>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="monthly-report-no-print flex flex-wrap items-end gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <label className="text-xs font-semibold text-gray-600">
+          Período inicial
+          <input
+            type="month"
+            value={periodStart}
+            onChange={(event) => setPeriodStart(event.target.value)}
+            className={numberInputClass}
+          />
+        </label>
+        <label className="text-xs font-semibold text-gray-600">
+          Período final
+          <input
+            type="month"
+            value={periodEnd}
+            onChange={(event) => setPeriodEnd(event.target.value)}
+            className={numberInputClass}
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            setPeriodStart("");
+            setPeriodEnd("");
+          }}
+          disabled={!periodStart && !periodEnd}
+          className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Limpar filtros
+        </button>
+        <span className="pb-2 text-xs text-gray-500">
+          {filteredReports.length} de {reports.length} meses
+        </span>
+      </div>
+
+      <div className="monthly-report-charts grid grid-cols-1 gap-4 xl:grid-cols-2">
         <MonthlyLineChart
           title={`Produção de leite · ${farmName}`}
-          reports={sortedReports}
+          reports={filteredReports}
           series={[{ key: "milkProduction", label: "Total de leite (L)" }]}
           colors={["#245184"]}
           formatValue={(value) => Math.round(value).toLocaleString("pt-BR")}
@@ -258,7 +314,7 @@ export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsPr
         />
         <MonthlyLineChart
           title={`Adicionais CCS e CBT · ${farmName}`}
-          reports={sortedReports}
+          reports={filteredReports}
           series={[
             { key: "additionalCcs", label: "Adicional CCS" },
             { key: "additionalCbt", label: "Adicional CBT" },
@@ -277,20 +333,20 @@ export function MonthlyReports({ farmName, reports, onChange }: MonthlyReportsPr
                 <th className="px-4 py-3">Total leite (L)</th>
                 <th className="px-4 py-3">Adicional CCS</th>
                 <th className="px-4 py-3">Adicional CBT</th>
-                <th className="px-4 py-3">Arquivo / origem</th>
+                <th className="px-4 py-3">Observação</th>
                 <th className="monthly-report-no-print px-4 py-3">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {sortedReports.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum mês lançado.</td></tr>
-              ) : sortedReports.map((report) => (
+              {filteredReports.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Nenhum mês encontrado no período.</td></tr>
+              ) : filteredReports.map((report) => (
                 <tr key={report.month} className="text-gray-700">
                   <td className="whitespace-nowrap px-4 py-3 capitalize">{formatMonth(report.month)}</td>
                   <td className="px-4 py-3">{report.milkProduction.toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3">{report.additionalCcs.toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3">{report.additionalCbt.toLocaleString("pt-BR")}</td>
-                  <td className="px-4 py-3">{report.source || "-"}</td>
+                  <td className="px-4 py-3">{report.observation || report.source || "-"}</td>
                   <td className="monthly-report-no-print px-4 py-3">
                     <button
                       type="button"
