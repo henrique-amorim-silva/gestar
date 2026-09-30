@@ -13,6 +13,8 @@ import { calculateReproductionFields } from "./utils/reproductionCalculations";
 import { DashboardAlerts } from "./components/DashboardAlerts";
 import { ReproductionGauges } from "./components/ReproductionGauges";
 import { GeneralSituationDashboard } from "./components/GeneralSituationDashboard";
+import { AppHeader, type AppTab } from "./components/AppHeader";
+import { MonthlyReports, type MonthlyReport } from "./components/MonthlyReports";
 
 export function App() {
   
@@ -52,6 +54,13 @@ export function App() {
   });
 
   const [isNewFarmModalOpen, setIsNewFarmModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<AppTab>("dashboard");
+  const [monthlyReports, setMonthlyReports] = useState<Record<string, MonthlyReport[]>>(
+    () => {
+      const saved = localStorage.getItem("@gestar_monthly_reports");
+      return saved ? JSON.parse(saved) : {};
+    },
+  );
 
   // Estados de Vacas
   const [cows, setCows] = useState<Cow[]>(() => {
@@ -104,6 +113,7 @@ export function App() {
     useState(false);
   const [cowForInseminationHistory, setCowForInseminationHistory] =
     useState<Cow | null>(null);
+  const [herdCowFilterId, setHerdCowFilterId] = useState<number | null>(null);
 
   // Sincronização com o localStorage
   useEffect(() => {
@@ -113,6 +123,10 @@ export function App() {
   useEffect(() => {
     localStorage.setItem("@gestar_cows", JSON.stringify(cows));
   }, [cows]);
+
+  useEffect(() => {
+    localStorage.setItem("@gestar_monthly_reports", JSON.stringify(monthlyReports));
+  }, [monthlyReports]);
 
   const activeCows = useMemo(() => {
     return cows.filter((cow) => cow.farmID === currentFarmId);
@@ -551,79 +565,96 @@ export function App() {
     setCowForInseminationHistory(cow);
     setIsInseminationHistoryModalOpen(true);
   };
+  const handleOpenCowFromAlert = (cow: Cow) => {
+    setHerdCowFilterId(cow.id);
+    setActiveTab("herd");
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-6 w-full">
       <div className="w-full space-y-6">
-        <header className="bg-white shadow rounded-lg p-6 border-l-4 border-emerald-600 w-full flex flex-col sm:flex-row items-center justify-between gap-4">
-          <img
-            src={`${import.meta.env.BASE_URL}images/logo-gestar.png`}
-            alt="Logo Gestar"
-            className="h-12 w-auto object-contain"
-          />
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-gray-700">
-                Fazenda:
-              </span>
-              <select
-                value={currentFarmId}
-                onChange={(e) => setCurrentFarmId(e.target.value)}
-                className="text-xs  text-black border border-emerald-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400 font-medium"
-              >
-                {farms.map((farm) => (
-                  <option key={farm.id} value={farm.id}>
-                    {farm.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+        <AppHeader
+          farms={farms}
+          currentFarmId={currentFarmId}
+          activeTab={activeTab}
+          onFarmChange={(farmId) => {
+            setCurrentFarmId(farmId);
+            setHerdCowFilterId(null);
+          }}
+          onCreateFarm={() => setIsNewFarmModalOpen(true)}
+          onTabChange={setActiveTab}
+        />
 
-            <button
-              onClick={() => setIsNewFarmModalOpen(true)}
-              className="text-xs font-semibold bg-emerald-700 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg border border-emerald-600 transition-colors flex items-center gap-1 shadow-sm whitespace-nowrap"
-            >
-              <span>+ Nova Fazenda</span>
-            </button>
-          </div>
-        </header>
+        {activeTab === "dashboard" && (
+          <>
+            <GeneralSituationDashboard cows={activeCows} />
+            <main className="w-full space-y-6">
+              <DashboardKPIs cows={activeCows} />
+              <ReproductionGauges cows={activeCows} />
+              <DashboardAlerts
+                cows={activeCows}
+                onCowClick={handleOpenCowFromAlert}
+              />
+            </main>
+          </>
+        )}
 
-        <GeneralSituationDashboard cows={activeCows} />
-
-        <main className="w-full space-y-6">
-          <DashboardKPIs cows={activeCows} />
-          <ReproductionGauges cows={activeCows} />
-          <DashboardAlerts cows={activeCows} />
-
-          <div className="bg-white rounded-lg shadow p-5 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-100 pb-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-800">
-                  Gerenciamento do Rebanho
-                </h2>
-                <p className="text-xs text-gray-500">
-                  Lista completa de animais e histórico reprodutivo
-                </p>
+        {activeTab === "herd" && (
+          <main className="w-full space-y-6">
+            <div className="space-y-4 rounded-lg bg-white p-5 shadow">
+              <div className="flex flex-col items-start justify-between gap-4 border-b border-gray-100 pb-4 sm:flex-row sm:items-center">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-800">Gerenciamento do Rebanho</h2>
+                  <p className="text-xs text-gray-500">
+                    {herdCowFilterId === null
+                      ? "Lista completa de animais e histórico reprodutivo"
+                      : `Exibindo: ${activeCows.find((cow) => cow.id === herdCowFilterId)?.name || "animal selecionado"}`}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {herdCowFilterId !== null && (
+                    <button
+                      type="button"
+                      onClick={() => setHerdCowFilterId(null)}
+                      className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+                    >
+                      Limpar filtro
+                    </button>
+                  )}
+                  <button
+                    onClick={handleOpenCreateModal}
+                    className="flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow transition-colors hover:bg-emerald-800"
+                  >
+                    + Nova Vaca
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={handleOpenCreateModal}
-                className="bg-emerald-700 text-white px-4 py-2 rounded-lg hover:bg-emerald-800 font-semibold text-sm transition-colors shadow flex items-center gap-2"
-              >
-                <span>+ Nova Vaca</span>
-              </button>
+              <CowTable
+                cows={
+                  herdCowFilterId === null
+                    ? activeCows
+                    : activeCows.filter((cow) => cow.id === herdCowFilterId)
+                }
+                onEdit={handleEditCow}
+                onDelete={handleDeleteCow}
+                onInsemination={handleOpenInseminationModal}
+                onCalving={handleOpenCalvingModal}
+                onOpenCalvingHistory={handleOpenCalvingHistoryModal}
+                onOpenInseminationHistory={handleOpenInseminationHistoryModal}
+              />
             </div>
+          </main>
+        )}
 
-            <CowTable
-              cows={activeCows}
-              onEdit={handleEditCow}
-              onDelete={handleDeleteCow}
-              onInsemination={handleOpenInseminationModal}
-              onCalving={handleOpenCalvingModal}
-              onOpenCalvingHistory={handleOpenCalvingHistoryModal}
-              onOpenInseminationHistory={handleOpenInseminationHistoryModal}
-            />
-          </div>
-        </main>
+        {activeTab === "reports" && (
+          <MonthlyReports
+            farmName={farms.find((farm) => farm.id === currentFarmId)?.name || "Fazenda"}
+            reports={monthlyReports[currentFarmId] || []}
+            onChange={(reports) =>
+              setMonthlyReports((previous) => ({ ...previous, [currentFarmId]: reports }))
+            }
+          />
+        )}
 
         <CowForm
           isOpen={isModalOpen}

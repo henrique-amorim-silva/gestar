@@ -2,9 +2,10 @@ import type { Cow } from "../types/cow";
 
 interface DashboardAlertsProps {
   cows: Cow[];
+  onCowClick: (cow: Cow) => void;
 }
 
-export function DashboardAlerts({ cows }: DashboardAlertsProps) {
+export function DashboardAlerts({ cows, onCowClick }: DashboardAlertsProps) {
   const today = new Date();
 
   // Helper para calcular dias entre hoje e uma data alvo (considerando dias decorridos desde a data passada)
@@ -89,17 +90,19 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
             {upcomingCalvings.map((cow) => {
               const diff = getDaysDifference(cow.expectedCalvingDate);
               return (
-                <div
+                <button
                   key={cow.id}
-                  className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border"
+                  type="button"
+                  onClick={() => onCowClick(cow)}
+                  className="flex w-full justify-between items-center text-left text-xs bg-gray-50 p-2 rounded border hover:bg-amber-50 focus:outline-none focus:ring-2 focus:ring-amber-500"
                 >
-                  <div>
+                  <span>
                     <span className="font-bold text-gray-800">
                       Brinco {cow.numberTag || "S/N"}
                     </span>{" "}
                     - {cow.name}
-                  </div>
-                  <div className="text-right">
+                  </span>
+                  <span className="text-right">
                     <span className="font-medium text-amber-700">
                       Previsto: {cow.expectedCalvingDate}
                     </span>
@@ -110,8 +113,8 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
                           ? `Passou ${Math.abs(diff)} dias`
                           : `Faltam ${diff} dias`}
                     </span>
-                  </div>
-                </div>
+                  </span>
+                </button>
               );
             })}
           </div>
@@ -139,25 +142,27 @@ export function DashboardAlerts({ cows }: DashboardAlertsProps) {
               const lastInsemDate = cow.lastInseminationDate || (cow.inseminationHistory && cow.inseminationHistory[0]?.date);
               const days = getDaysSince(lastInsemDate);
               return (
-                <div
+                <button
                   key={cow.id}
-                  className="flex justify-between items-center text-xs bg-gray-50 p-2 rounded border"
+                  type="button"
+                  onClick={() => onCowClick(cow)}
+                  className="flex w-full justify-between items-center text-left text-xs bg-gray-50 p-2 rounded border hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <div>
+                  <span>
                     <span className="font-bold text-gray-800">
                       Brinco {cow.numberTag || "S/N"}
                     </span>{" "}
                     - {cow.name}
-                  </div>
-                  <div className="text-right">
+                  </span>
+                  <span className="text-right">
                     <span className="text-gray-600">
                       Últ. IA: {lastInsemDate || "N/D"} ({days} dias)
                     </span>
                     <span className="block text-[10px] font-semibold text-blue-600">
                       IA nº {cow.inseminationNumber || 1}
                     </span>
-                  </div>
-                </div>
+                  </span>
+                </button>
               );
             })}
           </div>
